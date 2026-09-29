@@ -1363,7 +1363,9 @@ Keeper duel   shot × distance
         if (C.trailCrack) { // the pitch cracks open under the flight
           const L = s.crack || (s.crack = { x: s.x0, y: s.y0 });
           if (Math.hypot(ball.x - L.x, ball.y - L.y) > 26) { decal('crack', L.x, L.y, ball.x, ball.y); s.crack = { x: ball.x, y: ball.y }; }
+          if ((s.qAcc = (s.qAcc || 0) + dt) > 0.12) { s.qAcc = 0; ring(ball.x, ball.y, '#e0a93f', 30, 0.4); } // seismic rings under the ball
         }
+        if (is3D()) turf3D(s, special, dt, bx, by, px, py);
         s.acc = (s.acc || 0) + (special ? 110 : 24) * dt;
         while (s.acc >= 1) {
           s.acc -= 1;
@@ -1375,6 +1377,32 @@ Keeper duel   shot × distance
           else if (Math.random() < .45) Object.assign(p, { kind: 'rock', color: Math.random() < .5 ? '#c98f2c' : '#8a5f1a', size: 1.8 + Math.random() * 2.6, life: .5 + Math.random() * .35, vx: bx * 70 + px * sv * 110, vy: by * 70 + py * sv * 110, drag: 4 });
           else Object.assign(p, { kind: 'dust', color: '#e8cf9a', size: 3 + Math.random() * 4, life: .45, vx: bx * 40 + px * sv * 40, vy: by * 40 + py * sv * 40 });
           parts.push(p);
+        }
+      }
+      // 3D only: a shot under 24 units tears up the turf. Grass blades and loam clods fly on gravity arcs (p.g, u/s²) and
+      // settle on the pitch; specials add their element's reaction and cut a trench behind the ball (scorch / furrow).
+      // (bx, by) = backwards along the flight, (px, py) = across it.
+      const GRASS = ['#4ade80', '#22c55e', '#16a34a', '#86efac', '#15803d'], LOAM = ['#3e2723', '#4e342e', '#2e1c0c'];
+      const pick = a => a[Math.floor(Math.random() * a.length)];
+      function turf3D(s, special, dt, bx, by, px, py) {
+        const h = ballHeight(performance.now());
+        if (h >= 24) { s.trench = null; return; }
+        const el = special ? s.elem : 'none';
+        s.tAcc = (s.tAcc || 0) + (special ? 160 : 40) * (1 - h / 24) * dt;
+        for (; s.tAcc >= 1; s.tAcc--) {
+          const lat = (Math.random() - .5) * 180, r = Math.random();
+          const p = { x: ball.x, y: ball.y, vx: bx * 30 + px * lat, vy: by * 30 + py * lat, t: 0, life: 0.9 + Math.random() * 0.5, size: 3, rot: 0, drag: 1.5, rise: 0, h0: 1, vh: 55 + Math.random() * 65, g: 180, kind: 'grass', color: pick(GRASS) };
+          if (el === 'flame' && r < .35) Object.assign(p, { kind: 'ember', color: '#ff5a36', vh: 20 + Math.random() * 30, g: 0, life: 0.6 }); // singed into sparks
+          else if (el === 'flame' && r < .55) Object.assign(p, { kind: 'clod', color: '#281408' });                                         // charred
+          else if (el === 'gale') { const sw = (Math.random() < .5 ? -1 : 1) * 140; Object.assign(p, { vx: px * sw - bx * 40, vy: py * sw - by * 40, vh: 90 + Math.random() * 60, g: 60, drag: 3 }); if (r < .3) Object.assign(p, { kind: 'wisp', color: '#a7f3d0' }); } // sucked up round the ball
+          else if (el === 'stone' && r < .5) Object.assign(p, { kind: 'clod', color: r < .25 ? '#8a5f1a' : '#c98f2c', vh: 95, size: 5 }); // boulders ~25 units up
+          else if (r < .25) Object.assign(p, { kind: 'clod', color: pick(LOAM), drag: 3 });
+          parts.push(p);
+        }
+        const mark = special && { flame: 'scorch', gale: 'furrow' }[s.elem];
+        if (mark) {
+          const L = s.trench || (s.trench = { x: ball.x, y: ball.y });
+          if (Math.hypot(ball.x - L.x, ball.y - L.y) > 24) { decal(mark, L.x, L.y, ball.x, ball.y); s.trench = { x: ball.x, y: ball.y }; }
         }
       }
       function updateParts(dt) {
@@ -2980,7 +3008,7 @@ Keeper duel   shot × distance
       const R3_W = 480, R3_H = 270; // N64-style internal resolution, softly upscaled by CSS
       // HD mode tuning, set by eye. Glow materials are multiplied by `glow` so they clear the bloom threshold; lit
       // surfaces (white kits, pitch lines) only just touch it. `spike` is the extra bloom at the peak of an impact.
-      const HD = { maxW: 1920, bloom: 0.5, spike: 0.8, radius: 0.4, threshold: 1.0, glow: 3 };
+      const HD = { maxW: 1920, bloom: 0.45, spike: 0.75, radius: 0.4, threshold: 0.85, glow: 3 }; // impact peak = 1.2
       let r3 = null, r3Loading = null;
       function load3D() {
         if (r3 || r3Loading) return;
@@ -3159,24 +3187,38 @@ Keeper duel   shot × distance
         pGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(PMAX * 3), 3));
         const points = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 5, map: dotTex, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
         points.frustumCulled = false; scene.add(points);
+        // Solid particles (grass blades, loam clods): normal blending, so dark earth doesn't vanish the way it would additively.
+        const sGeo = new THREE.BufferGeometry();
+        sGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(PMAX * 3), 3));
+        sGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(PMAX * 4), 4)); // rgba: fades out
+        const solids = new THREE.Points(sGeo, new THREE.PointsMaterial({ size: 3.5, vertexColors: true, transparent: true, depthWrite: false }));
+        solids.frustumCulled = false; scene.add(solids);
 
         // ---- element FX riding the ball. Each group's local +y points backwards along the flight path. ----
         const glowMat = col => glowing(new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }));
         const shotFx = {};
         for (const el of ['flame', 'gale', 'stone']) { const g = new THREE.Group(), spin = new THREE.Group(); g.add(spin); g.userData.spin = spin; g.visible = false; scene.add(g); shotFx[el] = g; }
-        for (const [col, r, l] of [['#ff5a36', 7, 36], ['#ffb347', 4.5, 24], ['#fff0c2', 2.5, 13]]) add(shotFx.flame.userData.spin, new THREE.ConeGeometry(r, l, 8, 1, true), glowMat(col), 0, l / 2, 0, false);
+        // Flame: outer cone spins one way, the inner plasma cones the other, and a gold flare ring hugs the ball's equator.
+        const flameIn = new THREE.Group(); shotFx.flame.add(flameIn); shotFx.flame.userData.counter = flameIn;
+        for (const [col, r, l, g] of [['#ff5a36', 7, 36, shotFx.flame.userData.spin], ['#ffb347', 4.5, 24, flameIn], ['#fff0c2', 2.5, 13, flameIn]]) add(g, new THREE.ConeGeometry(r, l, 8, 1, true), glowMat(col), 0, l / 2, 0, false);
+        shotFx.flame.userData.flare = add(shotFx.flame, new THREE.TorusGeometry(7.5, 1.1, 6, 20).rotateX(Math.PI / 2), glowMat('#ffe14d'), 0, 0, 0, false);
         for (let i = 0; i < 3; i++) add(shotFx.gale.userData.spin, new THREE.TorusGeometry(9 + i * 3, 1.1, 4, 14, Math.PI * 1.3), glowMat(i % 2 ? '#c9fff6' : '#35d6c0'), 0, 3 + i * 7, 0, false).rotation.set(Math.PI / 2, 0, i * 2);
-        for (let i = 0; i < 4; i++) add(shotFx.stone.userData.spin, new THREE.DodecahedronGeometry(3 + (i % 2) * 1.5, 0), toon(i % 2 ? '#c98f2c' : '#8a5f1a'), Math.cos(i * Math.PI / 2) * 12, 2, Math.sin(i * Math.PI / 2) * 12);
+        for (let i = 0; i < 6; i++) add(shotFx.stone.userData.spin, new THREE.DodecahedronGeometry(3 + (i % 2) * 1.5, 0), toon(i % 2 ? '#c98f2c' : '#8a5f1a'), Math.cos(i * Math.PI / 3) * 12, 2 + (i % 2 ? 3 : -3), Math.sin(i * Math.PI / 3) * 12);
 
-        // ---- styled shots: 4 extra balls for 'multi', a beam for 'laser' (local +y = along the beam, scaled to length) ----
+        // ---- styled shots: 4 ghost balls for 'multi', a beam for 'laser' (local +y = along the beam, scaled to length) ----
         const multiBalls = [];
-        for (let i = 0; i < 4; i++) { const m = add(scene, new THREE.SphereGeometry(4.5, 8, 6), toon('#fbfbf7')); m.visible = false; multiBalls.push(m); }
+        for (let i = 0; i < 4; i++) { const m = add(scene, new THREE.SphereGeometry(4.5, 8, 6), glowMat(['#35d6c0', '#b388ff', '#00e5ff', '#b388ff'][i]), 0, 0, 0, false); m.visible = false; multiBalls.push(m); }
         const laser = new THREE.Group(); laser.visible = false; scene.add(laser);
-        add(laser, new THREE.CylinderGeometry(4.5, 4.5, 1, 8, 1, true), glowMat('#ffffff'), 0, 0.5, 0, false);
-        add(laser, new THREE.CylinderGeometry(1.4, 1.4, 1, 6), glowMat('#ffffff'), 0, 0.5, 0, false);
-        const smokeMat = new THREE.MeshLambertMaterial({ color: '#c9ced8', transparent: true, opacity: 0.75 });
+        add(laser, new THREE.CylinderGeometry(4.5, 4.5, 1, 8, 1, true), glowMat('#00e5ff'), 0, 0.5, 0, false); // neon jacket
+        add(laser, new THREE.CylinderGeometry(1.4, 1.4, 1, 6), glowMat('#ffffff'), 0, 0.5, 0, false);          // white core
+        const laserRings = []; // sonic shock rings sliding boot → ball (kept out of the beam group, whose y scale would stretch them)
+        for (let i = 0; i < 4; i++) { const m = add(scene, new THREE.TorusGeometry(6, 0.8, 6, 20).rotateX(Math.PI / 2), glowMat('#c9fff6'), 0, 0, 0, false); m.visible = false; laserRings.push(m); }
+        const thrust = new THREE.Group(); thrust.visible = false; scene.add(thrust); // missile afterburner, local +y = backwards
+        add(thrust, new THREE.ConeGeometry(5, 26, 8, 1, true), glowMat('#ff5a36'), 0, 13, 0, false);
+        add(thrust, new THREE.ConeGeometry(2.6, 16, 8, 1, true), glowMat('#ffe14d'), 0, 8, 0, false);
+        const smokeMat = new THREE.MeshLambertMaterial({ color: '#c9ced8', transparent: true, opacity: 0.75 }), fireMat = glowMat('#ff9a3c');
         const smoke = [];
-        for (let i = 0; i < 9; i++) { const m = add(scene, new THREE.IcosahedronGeometry(3, 0), smokeMat, 0, 0, 0, false); m.visible = false; smoke.push(m); }
+        for (let i = 0; i < 14; i++) { const m = add(scene, new THREE.IcosahedronGeometry(3, 0), i < 3 ? fireMat : smokeMat, 0, 0, 0, false); m.visible = false; smoke.push(m); }
 
         // ---- shockwave rings (ring() calls), pooled ----
         // ---- pitch marks: pooled flat quads with scorch / crater / crack textures ----
@@ -3184,12 +3226,16 @@ Keeper duel   shot × distance
           scorch: canvasTex(64, 64, (c, w) => { const g = c.createRadialGradient(32, 32, 2, 32, 32, 32); g.addColorStop(0, 'rgba(14,8,3,.9)'); g.addColorStop(0.7, 'rgba(40,22,8,.55)'); g.addColorStop(1, 'rgba(40,22,8,0)'); c.fillStyle = g; c.fillRect(0, 0, w, w); }),
           crater: canvasTex(64, 64, (c, w) => { const g = c.createRadialGradient(32, 32, 2, 32, 32, 30); g.addColorStop(0, 'rgba(14,8,3,.95)'); g.addColorStop(0.75, 'rgba(40,22,8,.7)'); g.addColorStop(0.85, 'rgba(150,120,80,.7)'); g.addColorStop(1, 'rgba(150,120,80,0)'); c.fillStyle = g; c.fillRect(0, 0, w, w); }),
           crack: canvasTex(128, 16, (c, w, h) => { c.strokeStyle = 'rgba(30,20,10,.95)'; c.lineWidth = 3; c.lineCap = 'round'; c.beginPath(); c.moveTo(0, h / 2); for (let i = 1; i <= 16; i++) c.lineTo(i * 8, h / 2 + (i === 16 ? 0 : (sr(i * 3.1) - 0.5) * 8)); c.stroke(); }),
+          furrow: canvasTex(64, 16, (c, w, h) => { // torn sod: dark loam down the middle, ragged green edges
+            const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(40,90,40,0)'); g.addColorStop(0.2, 'rgba(46,110,50,.8)'); g.addColorStop(0.35, 'rgba(46,28,12,.95)');
+            g.addColorStop(0.65, 'rgba(46,28,12,.95)'); g.addColorStop(0.8, 'rgba(46,110,50,.8)'); g.addColorStop(1, 'rgba(40,90,40,0)'); c.fillStyle = g; c.fillRect(0, 0, w, h);
+          }),
         };
         const decalPool = [];
-        for (let i = 0; i < 24; i++) { const m = add(scene, new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: decalTex.scorch, transparent: true, depthWrite: false }), 0, 0.5, 0, false); m.visible = false; decalPool.push(m); }
+        for (let i = 0; i < 48; i++) { const m = add(scene, new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: decalTex.scorch, transparent: true, depthWrite: false }), 0, 0.5, 0, false); m.visible = false; decalPool.push(m); }
 
         const ringPool = [];
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < 16; i++) {
           const m = add(scene, new THREE.RingGeometry(0.82, 1, 28), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, side: THREE.DoubleSide }), 0, 1.2, 0, false);
           m.rotation.x = -Math.PI / 2; m.visible = false; ringPool.push(m);
         }
@@ -3255,7 +3301,7 @@ Keeper duel   shot × distance
         impact.enabled = false; composer.addPass(impact);
 
         return {
-          THREE, canvas, renderer, scene, camera, sun, composer, bloom, impact, glows, stadium, rigs, ballMesh, ballBody, m4: new THREE.Matrix4(), q: new THREE.Quaternion(), ballQ: new THREE.Quaternion(), glow, decalTex, decalPool, trailGeo, trailLine, pGeo, points, shotFx, multiBalls, laser, smoke, ringPool, sky, skyMats, barrier, walls,
+          THREE, canvas, renderer, scene, camera, sun, composer, bloom, impact, glows, stadium, rigs, ballMesh, ballBody, m4: new THREE.Matrix4(), q: new THREE.Quaternion(), ballQ: new THREE.Quaternion(), glow, decalTex, decalPool, trailGeo, trailLine, pGeo, sGeo, points, shotFx, multiBalls, laser, laserRings, thrust, smoke, ringPool, sky, skyMats, barrier, walls,
           colors: new Map(), hist: [], ballH: 5.5, camX: 0, shotRef: null, shot0: null, last: 0, aura: 0, K: 1,
           v: new THREE.Vector3(), v2: new THREE.Vector3(), dir: new THREE.Vector3(), up: new THREE.Vector3(0, 1, 0)
         };
@@ -3380,26 +3426,36 @@ Keeper duel   shot × distance
           g.visible = true; g.position.set(x, y, z);
           g.quaternion.setFromUnitVectors(R.up, R.dir.set(-dx, 0, -dz).normalize());
           g.userData.spin.rotation.y = now / 70;
-          if (el === 'flame') g.userData.spin.scale.set(1, 1 + Math.sin(now / 30) * 0.18, 1);
+          if (el === 'flame') { // counter-spinning vortex (60 / -80 rad/s) with a pulsing equatorial flare
+            g.userData.spin.rotation.y = now * 0.06; g.userData.counter.rotation.y = -now * 0.08;
+            g.userData.spin.scale.set(1, 1 + Math.sin(now / 30) * 0.18, 1);
+            const f = 1 + Math.sin(now / 40) * 0.15; g.userData.flare.scale.set(f, 1, f);
+          }
         };
         // Styled-shot extras. o = kick point, b = ball ([x, y, z]); (dx, dz) = flight direction; spread 0..1 for 'multi'.
-        R.laser.visible = false; for (const m of R.multiBalls.concat(R.smoke)) m.visible = false;
+        R.laser.visible = R.thrust.visible = false; for (const m of R.multiBalls.concat(R.smoke, R.laserRings)) m.visible = false;
         const styleOn = (style, el, o, b, dx, dz, spread) => {
           if (style === 'laser') {
             const L = R.laser; L.visible = true; L.position.set(...o);
             R.v2.set(b[0] - o[0], b[1] - o[1], b[2] - o[2]); const len = R.v2.length() || 1;
             L.quaternion.setFromUnitVectors(R.up, R.v2.normalize()); L.scale.set(1, len, 1);
-            L.children[0].material.userData.base.set(ELEM[el].c);
-          } else if (style === 'multi') {
+            R.laserRings.forEach((m, i) => { // shock rings sliding up the beam, widening as they go
+              const f = (now / 220 + i / 4) % 1, sc = 0.6 + f * 1.4;
+              m.visible = true; m.position.set(o[0] + (b[0] - o[0]) * f, o[1] + (b[1] - o[1]) * f, o[2] + (b[2] - o[2]) * f);
+              m.quaternion.copy(L.quaternion); m.scale.set(sc, sc, sc);
+            });
+          } else if (style === 'multi') { // double helix: two strands half a turn apart, two ghosts per strand
             R.multiBalls.forEach((m, i) => {
-              const a = now / 110 + i * Math.PI / 2, side = Math.cos(a) * 28 * spread, up = Math.sin(a) * 18 * spread, back = (8 + i * 6) * spread;
+              const a = now / 110 + (i % 2) * Math.PI + (i >> 1) * Math.PI / 2, side = Math.cos(a) * 24 * spread, up = Math.sin(a) * 18 * spread, back = (8 + (i >> 1) * 16) * spread;
               m.visible = true; m.position.set(b[0] - dz * side - dx * back, Math.max(4.5, b[1] + up), b[2] + dx * side - dz * back);
             });
-          } else if (style === 'missile') { // billowing smoke puffs, growing as they fall behind
-            R.smoke.forEach((m, i) => {
-              const back = 10 + i * 13, wob = Math.sin(now / 80 + i * 1.3) * 3;
-              m.visible = true; m.position.set(b[0] - dx * back - dz * wob, b[1] + i * 0.8, b[2] - dz * back + dx * wob);
-              const sc = 1 + i * 0.4; m.scale.set(sc, sc, sc); m.rotation.set(i, now / 300 + i, 0);
+          } else if (style === 'missile') {
+            const T = R.thrust; T.visible = true; T.position.set(...b); // afterburner locked to the tail, rattling with thrust
+            T.quaternion.setFromUnitVectors(R.up, R.dir.set(-dx, 0, -dz).normalize()); T.scale.set(1, 0.85 + Math.random() * 0.35, 1);
+            R.smoke.forEach((m, i) => { // fire then smoke, corkscrewing and swelling as it falls ~80 units behind
+              const back = 8 + i * 5.2, a = now / 90 + i * 0.9, r = 1.5 + i * 0.5, side = Math.cos(a) * r;
+              m.visible = true; m.position.set(b[0] - dx * back - dz * side, b[1] + Math.sin(a) * r + i * 0.4, b[2] - dz * back + dx * side);
+              const sc = 0.8 + i * 0.3; m.scale.set(sc, sc, sc); m.rotation.set(i, now / 300 + i, 0);
             });
           }
         };
@@ -3415,9 +3471,11 @@ Keeper duel   shot × distance
           R.glow.material.color.set(wu === 'eye' ? '#ffffff' : ELEM[ov.windup.m.elem].c).multiplyScalar(R.K); R.glow.scale.set(sc, sc, 1);
           if (wu === 'clone') R.multiBalls.forEach((m, i) => { const a = now / 90 + i * Math.PI / 2; m.visible = true; m.position.set(bp.x + Math.cos(a) * 14 * k, bp.y, bp.z + Math.sin(a) * 14 * k); });
         }
-        R.ballBody.material.color.set(ov.windup && ov.windup.C.windup === 'stamp' && windK(ov.windup, now) ? '#e0a93f' : '#fbfbf7'); // Tectonic Hammer turns the ball amber
+        const amber = (ov.windup && ov.windup.C.windup === 'stamp' && windK(ov.windup, now)) || (special && s.elem === 'stone');
+        R.ballBody.material.color.set(amber ? '#e0a93f' : '#fbfbf7'); // Tectonic Hammer turns the ball amber, and it stays amber in flight
+        const rl = rings.slice(-R.ringPool.length);
         R.ringPool.forEach((m, i) => {
-          const r = rings[i]; m.visible = !!r; if (!r) return;
+          const r = rl[i]; m.visible = !!r; if (!r) return;
           const u = r.t / r.life, sc = 4 + r.r1 * easeOut(u);
           m.position.set(r.x - CX, 1.2, r.y - CY); m.scale.set(sc, sc, 1); m.material.color.set(r.color).multiplyScalar(R.K); m.material.opacity = 1 - u;
         });
@@ -3425,24 +3483,36 @@ Keeper duel   shot × distance
         R.decalPool.forEach((m, i) => {
           const d = dl[i]; m.visible = !!d && !ov.cut; if (!m.visible) return;
           const g = decalGrow(d); m.material.map = R.decalTex[d.kind]; m.material.opacity = decalAlpha(d) * 0.85;
-          if (d.kind === 'crack') {
-            const dx = (d.x2 - d.x) * g, dy = (d.y2 - d.y) * g;
-            m.position.set(d.x + dx / 2 - CX, 0.5, d.y + dy / 2 - CY); m.rotation.set(-Math.PI / 2, 0, Math.atan2(-dy, dx)); m.scale.set(Math.hypot(dx, dy) || 0.01, 7, 1);
+          if (d.x2 !== d.x || d.y2 !== d.y) { // stripes: cracks, and the scorch / furrow trenches under a low special
+            const dx = (d.x2 - d.x) * g, dy = (d.y2 - d.y) * g, wd = d.kind === 'scorch' ? 20 : d.kind === 'furrow' ? 12 : 7;
+            m.position.set(d.x + dx / 2 - CX, 0.5, d.y + dy / 2 - CY); m.rotation.set(-Math.PI / 2, 0, Math.atan2(-dy, dx)); m.scale.set((Math.hypot(dx, dy) || 0.01) + (d.kind === 'crack' ? 0 : wd * 0.5), wd, 1);
           } else { const sz = d.kind === 'scorch' ? 56 : 32; m.position.set(d.x - CX, 0.5, d.y - CY); m.rotation.set(-Math.PI / 2, 0, d.seed); m.scale.set(sz, sz, 1); }
         });
         if (s) { R.hist.push(R.ballMesh.position.x, R.ballMesh.position.y, R.ballMesh.position.z); if (R.hist.length > 24 * 3) R.hist.splice(0, 3); } else R.hist.length = 0;
         const tp = R.trailGeo.attributes.position; tp.array.set(R.hist); tp.needsUpdate = true;
         R.trailGeo.setDrawRange(0, R.hist.length / 3); R.trailLine.material.color.set(special ? E.g : '#ffffff').multiplyScalar(R.K);
 
+        // Height: h0 + vh·t − ½g·t² (p.g set on turf ejecta, which then lie on the grass), embers drifting up on the heat.
+        // Glowing kinds go to the additive cloud; grass and clods to the solid one.
         const pos = R.pGeo.attributes.position.array, col = R.pGeo.attributes.color.array;
-        const n = Math.min(parts.length, 700);
-        for (let i = 0; i < n; i++) {
-          const p = parts[i], a = (1 - p.t / p.life) * R.K;
+        const spos = R.sGeo.attributes.position.array, scol = R.sGeo.attributes.color.array;
+        let n = 0, ns = 0;
+        for (let i = 0, N = Math.min(parts.length, 700); i < N; i++) {
+          const p = parts[i], u = 1 - p.t / p.life;
           let c = R.colors.get(p.color); if (!c) { c = new R.THREE.Color(p.color); R.colors.set(p.color, c); }
-          pos[i * 3] = p.x - CX; pos[i * 3 + 1] = (p.h0 ?? 8) + (p.vh || 0) * p.t + (p.kind === 'ember' ? p.t * 40 : 0); pos[i * 3 + 2] = p.y - CY;
-          col[i * 3] = c.r * a; col[i * 3 + 1] = c.g * a; col[i * 3 + 2] = c.b * a;
+          const y = Math.max(0.6, (p.h0 ?? 8) + (p.vh || 0) * p.t - 0.5 * (p.g || 0) * p.t * p.t + (p.kind === 'ember' ? p.t * 40 : 0));
+          if (p.kind === 'grass' || p.kind === 'clod') {
+            const j = ns++ * 3, k = j / 3 * 4;
+            spos[j] = p.x - CX; spos[j + 1] = y; spos[j + 2] = p.y - CY;
+            scol[k] = c.r; scol[k + 1] = c.g; scol[k + 2] = c.b; scol[k + 3] = Math.min(1, u * 3);
+          } else {
+            const j = n++ * 3, a = u * R.K;
+            pos[j] = p.x - CX; pos[j + 1] = y; pos[j + 2] = p.y - CY;
+            col[j] = c.r * a; col[j + 1] = c.g * a; col[j + 2] = c.b * a;
+          }
         }
         R.pGeo.attributes.position.needsUpdate = R.pGeo.attributes.color.needsUpdate = true; R.pGeo.setDrawRange(0, n);
+        R.sGeo.attributes.position.needsUpdate = R.sGeo.attributes.color.needsUpdate = true; R.sGeo.setDrawRange(0, ns);
 
         // TV camera: follows the ball along the touchline; shake moves the camera, not the canvas.
         R.camX += (clamp((ball.x - CX) * 0.75, -170, 170) - R.camX) * Math.min(1, dt * 3);
@@ -3459,9 +3529,7 @@ Keeper duel   shot × distance
             const D = ov.duelCam, u = easeOut(clamp((now - D.t0) / 150, 0, 1)), mx = (D.a.x + D.b.x) / 2 - CX, mz = (D.a.y + D.b.y) / 2 - CY;
             cam = cam.map((v, i) => lerp(v, [mx, 70, mz + 150][i], u)); look = look.map((v, i) => lerp(v, [mx, 18, mz][i], u));
           }
-          const shk = shakeT > 0 && !reduced ? shakeT * (sc ? 6 : 14) : 0;
-          R.camera.position.set(cam[0] + (Math.random() - .5) * shk, cam[1] + (Math.random() - .5) * shk, cam[2]);
-          R.camera.lookAt(...look);
+          aim64(R, cam, look, sc ? sc.roll : 0, sc ? sc.fov : 34, shakeT > 0 && !reduced ? shakeT * (sc ? 6 : 14) : 0);
         }
         for (const m of R.glows) m.color.copy(m.userData.base).multiplyScalar(R.K);
         if (hd) {
@@ -3497,28 +3565,41 @@ Keeper duel   shot × distance
         }
       }
 
+      // Place the camera, then bank it (roll, radians, about the view axis) and zoom (vertical fov, degrees).
+      function aim64(R, cam, look, roll, fov, shk) {
+        R.camera.position.set(cam[0] + (Math.random() - .5) * shk, cam[1] + (Math.random() - .5) * shk, cam[2]);
+        R.camera.lookAt(...look);
+        if (roll) R.camera.rotateZ(roll);
+        if (R.camera.fov !== fov) { R.camera.fov = fov; R.camera.updateProjectionMatrix(); }
+      }
+
       // Broadcast-style cuts while a shot is live:
       //   first 30% of the flight → chase cam behind the ball
-      //   to 62%                  → side-on tracking shot
+      //   to 72%                  → side-on tracking shot (special moves: a bullet-cam skimming the turf behind the ball)
       //   last stretch, the keeper's save choice and duel, and a goal → behind the keeper, facing the ball
-      // Short shots (< 220 units) skip straight to the keeper view.
+      //     (special moves: the keeper's-eye "dread" view down the barrel until the ball is on him)
+      // Short shots (< 200 units) skip straight to the keeper view.
       function shotCam64(R, s) {
         const S = R.shot0, u = clamp(Math.hypot(ball.x - S.x, ball.y - S.y) / S.d, 0, 1);
-        const bx = ball.x - CX, bz = ball.y - CY, by = R.ballH;
+        const bx = ball.x - CX, bz = ball.y - CY, by = R.ballH, special = s.move.tp > 0;
         const k = keepers.find(q => q.team !== s.p.team), kx = k.x - CX, kz = k.y - CY, out = k.team === 0 ? -1 : 1;
-        if (s.kept || u > 0.62 || S.d < 220) {
+        let px = -S.dz, pz = S.dx; if (pz < 0) { px = -px; pz = -pz; } // always film from the near (camera) touchline side
+        if (s.kept || u > 0.72 || S.d < 200) {
+          if (special && !s.kept && u <= 0.95) // off the keeper's hip at eye level, the ball growing into the lens
+            return { cam: [kx + out * 50, 50, kz + (bz - kz) * 0.35 + 44], look: [bx, Math.max(6, by), bz], roll: px * 0.06 * (1 - u), fov: 30 };
           // Camera sits behind the net, high and off to one shoulder, so the keeper frames the ball instead of hiding it.
           // (It can't go further back: the end stand starts ~90 units behind the goal line.)
-          return { cam: [kx + out * 70, 74, kz * 0.4 + 42], look: [lerp(kx, bx, 0.75), Math.max(8, by * 0.6), lerp(kz, bz, 0.75)] };
+          return { cam: [kx + out * 70, 74, kz * 0.4 + 42], look: [lerp(kx, bx, 0.75), Math.max(8, by * 0.6), lerp(kz, bz, 0.75)], roll: 0, fov: 34 };
         }
-        let px = -S.dz, pz = S.dx; if (pz < 0) { px = -px; pz = -pz; } // always film from the near (camera) touchline side
+        if (special && u >= 0.12) // bullet-cam: skimming the grass behind the ball (clear of its trailing FX), banking into the flight
+          return { cam: [bx - S.dx * 95 + px * 30, Math.max(12, by * 0.6 + 10), bz - S.dz * 95 + pz * 30], look: [bx + S.dx * 140, by * 0.6 + 6, bz + S.dz * 140], roll: Math.sin(u * Math.PI) * px * 0.08, fov: 36 };
         // Chase cam: high and a little to the side, so the shooter's body doesn't fill the frame.
-        const chase = { cam: [bx - S.dx * 90 + px * 30, by + 60, bz - S.dz * 90 + pz * 30], look: [bx + S.dx * 140, 8, bz + S.dz * 140] };
-        const side = { cam: [bx + px * 120 - S.dx * 20, 40, bz + pz * 120 - S.dz * 20], look: [bx + S.dx * 20, by, bz + S.dz * 20] };
+        const chase = { cam: [bx - S.dx * 90 + px * 30, by + 60, bz - S.dz * 90 + pz * 30], look: [bx + S.dx * 140, 8, bz + S.dz * 140], roll: 0, fov: 34 };
+        const side = { cam: [bx + px * 120 - S.dx * 20, 40, bz + pz * 120 - S.dz * 20], look: [bx + S.dx * 20, by, bz + S.dz * 20], roll: 0, fov: 34 };
         if (!s.long) return u < 0.3 ? chase : side;
         // Long range (> 400): one continuous move, from behind the shooter sweeping round to the side as the ball flies.
         const b = easeOut(clamp((u - 0.15) / 0.4, 0, 1));
-        return { cam: chase.cam.map((v, i) => lerp(v, side.cam[i], b)), look: chase.look.map((v, i) => lerp(v, side.look[i], b)) };
+        return { cam: chase.cam.map((v, i) => lerp(v, side.cam[i], b)), look: chase.look.map((v, i) => lerp(v, side.look[i], b)), roll: Math.sin(b * Math.PI) * px * 0.05, fov: 34 };
       }
 
       // 3D special-move cutscene, on the same timeline as drawCut32:
@@ -3535,7 +3616,7 @@ Keeper duel   shot × distance
         R.sky.visible = true; R.sky.material = R.skyMats[m.elem] || R.skyMats.none;
         R.sky.position.set(px, 0, pz); R.sky.rotation.y = t * 1.6;
         // Element-coloured fog melts the stadium into the dome, leaving a pool of grass around the player.
-        R.scene.fog.color.set(E.c); R.scene.fog.near = 140; R.scene.fog.far = 330;
+        R.scene.fog.color.set(E.c); // near/far follow the camera distance, set with the camera below
 
         // Pose: arms up and leaning back while charging, then the move's release.
         C.legL.rotation.z = C.legR.rotation.z = C.armL.rotation.z = C.armR.rotation.z = 0;
@@ -3547,7 +3628,8 @@ Keeper duel   shot × distance
           const u = clamp((t - 1.42) / 0.84, 0, 1); // leaves on contact; stays in frame until the cut ends
           const b = at(14 + u * 260, m.style === 'missile' ? Math.sin(u * Math.PI * 5) * 16 * (1 - u) : 0, 5.5 + u * (m.style === 'laser' ? 6 : 34));
           R.ballMesh.position.set(...b);
-          R.glow.visible = true; R.glow.position.copy(R.ballMesh.position); R.glow.material.color.set(E.c).multiplyScalar(R.K); R.glow.scale.set(44, 44, 1);
+          const gs = t < 1.48 ? 14 : 44; // small while the camera is point-blank, or it swallows the frame
+          R.glow.visible = true; R.glow.position.copy(R.ballMesh.position); R.glow.material.color.set(E.c).multiplyScalar(R.K); R.glow.scale.set(gs, gs, 1);
           fxOn(m.elem, ...b, fx, fz);
           if (m.style) styleOn(m.style, m.elem, at(14, 0, 5.5), b, fx, fz, Math.sin(u * Math.PI));
         } else if (rel && m.kind === 'dribble') {
@@ -3568,17 +3650,34 @@ Keeper duel   shot × distance
           }
         }
 
-        // Player is ~50 units tall; at fov 34 a full-body shot needs ~120 units of distance.
-        const orbit = (ang, r) => at(Math.cos(ang) * r, Math.sin(ang) * r, 42);
-        let cam, look = at(0, 0, 30);
-        if (t < 0.5) { const k = easeOut(t / 0.5), a = at(-200, 150, 140), b = orbit(0.45, 125); cam = a.map((v, i) => lerp(v, b[i], k)); }
-        else if (!rel) cam = orbit(0.45 + (Math.min(t, 1.22) - 0.5) * 0.7, t >= 1.22 ? 95 : 125);
-        else if (m.kind === 'shot') { cam = at(-110, -70, 55); look = at(180, 0, 20); }
-        else if (m.kind === 'dribble') { cam = at(dash * 0.6 + 20, 170, 55); look = at(dash, 0, 24); }
-        else { cam = at(190, 70, 50); look = at(30, 0, 34); }
-        const shk = shakeT > 0 && !reduced ? shakeT * 8 : 0;
-        R.camera.position.set(cam[0] + (Math.random() - .5) * shk, cam[1] + (Math.random() - .5) * shk, cam[2]);
-        R.camera.lookAt(...look);
+        // Anime direction, 4 phases. Player is ~60 units tall with the hair; the letterbox bars eat ~25% of the frame.
+        //   0–0.5s    worm's-eye swoop: rises from turf level looking up at the hero, Dutch tilt levelling out
+        //   to 1.36s  charge: spiral with a dolly zoom — fov 32→24 while the camera backs off to keep him the same size, so
+        //             the telephoto compression flattens the speed lines behind him
+        //   shots     1.36–1.48s point-blank snap on boot and ball (fov 22, hard tilt), then the low follow-through as it flies
+        const fit = (fov, span) => span / 2 / Math.tan(fov * Math.PI / 360); // distance that frames `span` units top to bottom
+        const spiral = (c, d) => { const a = 0.55 + c * 0.85; return at(Math.cos(a) * d, Math.sin(a) * d, lerp(36, 26, c)); };
+        let cam, look = at(0, 0, 30), roll = 0, fov = 34, dist = 150;
+        if (t < 0.5) {
+          const k = easeOut(clamp(t / 0.5, 0, 1)), a = at(-140, 95, 16), b = spiral(0, fit(32, 100)); // t dips below 0 on a first frame
+          cam = a.map((v, i) => lerp(v, b[i], k)); look = at(0, 0, 32); roll = -0.15 * (1 - k); fov = lerp(36, 32, k);
+        } else if (!rel) {
+          const c = clamp((t - 0.5) / 0.72, 0, 1);
+          fov = lerp(32, 24, easeOut(c)); dist = fit(fov, t >= 1.22 ? 78 : 100);
+          cam = spiral(c, dist); look = at(4, 0, 26); roll = -0.12 + Math.sin(t * 8) * 0.04;
+        } else if (m.kind === 'shot') {
+          if (t < 1.48) {
+            const h = clamp((t - 1.36) / 0.12, 0, 1);
+            cam = at(lerp(44, 30, h), lerp(-46, -36, h), lerp(20, 14, h)); look = at(9, 0, 10); roll = 0.22; fov = 22;
+          } else {
+            const k = easeOut(clamp((t - 1.48) / 0.7, 0, 1)), bp = R.ballMesh.position;
+            cam = at(lerp(-75, -105, k), lerp(-55, -80, k), lerp(22, 38, k));
+            look = [bp.x * 0.4 + px * 0.6, bp.y * 0.4 + 18, bp.z * 0.4 + pz * 0.6]; roll = lerp(0.18, 0.05, k); fov = lerp(25, 36, k);
+          }
+        } else if (m.kind === 'dribble') { cam = at(dash * 0.6 + 20, 160, 48); look = at(dash, 0, 24); roll = -0.1; fov = 30; }
+        else { cam = at(170, 65, 45); look = at(28, 0, 32); roll = 0.08; fov = 32; }
+        R.scene.fog.near = Math.max(140, dist + 20); R.scene.fog.far = R.scene.fog.near + 190; // the dolly-out must not fog him over
+        aim64(R, cam, look, roll, fov, shakeT > 0 && !reduced ? shakeT * 8 : 0);
       }
 
       function drawTags64(now, s, special, E) { // name tags, shot label, aim line and floating texts, projected from 3D
