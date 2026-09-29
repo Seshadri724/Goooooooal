@@ -1083,8 +1083,24 @@ Keeper duel   shot × distance
         gn.gain.setValueAtTime(vol, t); gn.gain.exponentialRampToValueAtTime(0.0001, t + dur);
         s.connect(f).connect(gn).connect(AC.destination); s.start(t); s.stop(t + dur + 0.02);
       }
+      function sweep(dur, vol, f0, f1, delay = 0) { // filtered noise whoosh, cutoff gliding f0 → f1
+        const t = AC.currentTime + delay, s = AC.createBufferSource(), f = AC.createBiquadFilter(), gn = AC.createGain();
+        s.buffer = noiseBuf; f.type = 'bandpass'; f.Q.value = 1.2; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+        gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(vol, t + dur * 0.25); gn.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        s.connect(f).connect(gn).connect(AC.destination); s.start(t); s.stop(t + dur + 0.02);
+      }
+      // Signature-shot and crowd sounds, 3D / 32-bit only (the 12-bit chip set has its own voices, below).
+      const SFX2 = {
+        ignite: () => { sweep(0.55, 0.22, 300, 2600); for (let i = 0; i < 6; i++) noise(0.04, 0.18, 3500, 0.05 + i * 0.07 + Math.random() * 0.04); }, // the foot catches fire
+        meteor: () => { tone('sine', 170, 36, 0.4, 0.85); noise(0.22, 0.55, 4200); tone('sawtooth', 90, 760, 0.55, 0.06); sweep(0.7, 0.25, 500, 3000, 0.02); }, // strike: thump, crack, rising roar
+        sizzle: () => { sweep(0.9, 0.3, 400, 3400); sweep(0.5, 0.26, 3400, 260, 0.75); }, // flies in, then passes with a drop in pitch
+        crackle: () => { for (let i = 0; i < 7; i++) noise(0.03, 0.22, 3800, i * 0.045 + Math.random() * 0.03); tone('sine', 140, 60, 0.15, 0.3); },
+        net: () => { noise(0.35, 0.3, 5200); tone('triangle', 900, 260, 0.25, 0.14); },
+        roar: () => { sweep(2, 0.2, 500, 2200); noise(2.4, 0.1, 1400, 0.25); }, // crowd erupts
+      };
       function sfx(k, n = 0) {
         if (!AC || muted) return;
+        if (SFX2[k]) { if (engineMode !== '12bit') try { SFX2[k](); } catch (e) { } return; }
         try {
           if (engineMode !== '12bit') {
             switch (k) {
@@ -1287,7 +1303,7 @@ Keeper duel   shot × distance
       // trailCrack: the pitch cracks under the flight. At the keeper: push (shoved back, units, even on a save) · lift
       // (thrown up) · blast (explosion) · shatter (phantom balls burst like glass) · mark (pitch mark left behind).
       const CHOREO = {
-        'Crimson Meteor': { windup: 'spin', spin: 'top', ring: true, push: 22, mark: 'scorch' },
+        'Crimson Meteor': { windup: 'spin', spin: 'top', ring: true, push: 22, mark: 'scorch', sound: 'meteor', footFire: true },
         'Tempest Drive': { windup: 'jump', spin: 'side', spiral: true, push: 12 },
         'Shard Spiral': { windup: 'jump', spin: 'side', spiral: true },
         'Phantom Barrage': { windup: 'clone', spin: 'back', shatter: true },
@@ -1308,6 +1324,7 @@ Keeper duel   shot × distance
       const decalGrow = d => d.grow ? Math.min(1, d.t / d.grow) : 1;
       function keeperContact(k, shot) { // the shot's signature reaction where it meets the keeper
         const C = choreo(shot.move);
+        if (C.sound) sfx('crackle');
         if (C.push) k.dv.shove = C.push;
         if (C.lift) { k.dv.lift = true; dust(k.x, k.y, 16, '#c98f2c', 90); }
         if (C.blast) {
@@ -1602,7 +1619,7 @@ Keeper duel   shot × distance
         ball.shot = { p, move: m, elem: m.elem, style: m.style, power: pwr, targetY, cracked: false, distK, x0: ball.x, y0: ball.y, long: dist > 400, spinKind, curve, c0: clock };
         ball.bounces = 0;
         ball.noPick = { p, t: 0.6 };
-        sfx('kick');
+        sfx('kick'); if (choreo(m).sound) sfx('sizzle');
         burst(ball.x, ball.y, m.elem, m.tp > 0 ? 32 : 14, 240, 0.7);
         shake(m.tp > 0 ? 0.35 : 0.16);
         squash(dx, dy, m.tp > 0 ? 0.35 : 0.25);
@@ -1633,6 +1650,7 @@ Keeper duel   shot × distance
         setTimeout(() => {
           if (!ov.windup) return; // skipped
           sfx('windup');
+          if (C.footFire) { sfx('ignite'); decal('scorch', p.x - p.fx * 4, p.y + 8); } // the foot catches fire and scorches the plant spot
           for (let i = 0; i < 16; i++) {
             const a = i / 16 * Math.PI * 2;
             parts.push({ x: bx + Math.cos(a) * 30, y: by + Math.sin(a) * 30, vx: -Math.cos(a) * 150, vy: -Math.sin(a) * 150, t: 0, life: 0.2, size: 2.5, color: i % 2 ? E.c : E.g, kind: 'spark', rot: 0, drag: 0, rise: 0 });
@@ -1929,7 +1947,7 @@ Keeper duel   shot × distance
       }
 
       async function goalScored(scoringTeam) {
-        const id = matchId; mode = 'freeze'; sfx('goal'); shake(0.5);
+        const id = matchId; mode = 'freeze'; sfx('goal'); sfx('net'); sfx('roar'); shake(0.5);
         score[scoringTeam]++;
         const ch = scoringTeam === 0 ? HARU : JIN;
         netHit = { team: scoringTeam, z: ball.y - CY, h: r3 ? r3.ballH : 10, t0: performance.now(), k: 1 };
@@ -3233,9 +3251,9 @@ Keeper duel   shot × distance
             const ankle = new THREE.Group(); ankle.position.y = -6.6; knee.add(ankle);
             part(ankle, new THREE.BoxGeometry(8.4, 3.2, 4.6), '#1b1f2a', 2, -0.9, 0);
             part(ankle, new THREE.BoxGeometry(2.4, 3.3, 4.7), o.shorts, 5.4, -0.9, 0, false); // toe cap in the kit's trim colour
-            return { hip, knee };
+            return { hip, knee, ankle };
           };
-          const { hip: legL, knee: kneeL } = mkLeg(-4.2), { hip: legR, knee: kneeR } = mkLeg(4.2);
+          const { hip: legL, knee: kneeL } = mkLeg(-4.2), { hip: legR, knee: kneeR, ankle: ankleR } = mkLeg(4.2);
           part(body, new THREE.CylinderGeometry(7.2, 6.8, 6, 10), o.shorts, 0, 1, 0); // waist
           const chest = part(body, cap(6.4, 17), o.jersey, 0, 13, 0); chest.scale.set(0.8, 1, 1.15);
           add(chest, new THREE.CylinderGeometry(6.6, 6.6, 2.2, 12), toon(o.shorts), 0, 0.5, 0, false); // sash, inherits the squash
@@ -3277,7 +3295,7 @@ Keeper duel   shot × distance
           const stars = new THREE.Group(); stars.position.y = 64; stars.visible = false; root.add(stars);
           for (let i = 0; i < 3; i++) add(stars, new THREE.OctahedronGeometry(2.2), new THREE.MeshBasicMaterial({ color: '#ffe14d' }), Math.cos(i * 2.094) * 11, 0, Math.sin(i * 2.094) * 11, false);
           scene.add(root);
-          return { root, tilt, body, head, legL, legR, armL, armR, kneeL, kneeR, elL, elR, eyes, stars };
+          return { root, tilt, body, head, legL, legR, armL, armR, kneeL, kneeR, ankleR, elL, elR, eyes, stars };
         };
         const player = (ch, spikes, o) => mkChar(Object.assign({ jersey: ch.jersey, shorts: ch.trim, skin: ch.skin, hair: ch.hair, eye: ch.eye, num: 1, spikes }, o));
         const rigs = new Map([
@@ -3301,6 +3319,10 @@ Keeper duel   shot × distance
         });
         const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
         glow.visible = false; scene.add(glow);
+        for (const C of rigs.values()) { // a fire on the kicking boot for flame wind-ups (draw64 lights it)
+          C.fire = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+          C.fire.position.set(3, -0.5, 0); C.fire.visible = false; C.ankleR.add(C.fire);
+        }
         const TRAIL_N = 24, trailGeo = new THREE.BufferGeometry();
         trailGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TRAIL_N * 3), 3));
         const trailLine = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: '#ffffff' })); trailLine.frustumCulled = false; scene.add(trailLine);
@@ -3484,6 +3506,19 @@ Keeper duel   shot × distance
           }
           for (const [arm, el] of [[C.armL, C.elL], [C.armR, C.elR]])
             el.rotation.z = (0.3 + 0.75 * r + Math.max(0, arm.rotation.z) * 0.3) * (1 - clamp(Math.abs(arm.rotation.x) / 1.2, 0, 1));
+          // Boot fire (Crimson Meteor): builds through the charge / draw-back, blazes on the strike, dies over the follow-through.
+          let f = 0; const sh = ball.shot;
+          if (isP) {
+            if (ov.windup && ov.windup.p === ent && ov.windup.C.footFire) f = windK(ov.windup, now);
+            else if (mine && ov.cut.m.kind === 'shot' && choreo(ov.cut.m).footFire) f = clamp(((now - ov.cut.t0) / 1000 - 0.5) / 0.7, 0, 1);
+            else if (sh && sh.p === ent && choreo(sh.move).footFire) f = clamp(1 - (clock - sh.c0) / 0.5, 0, 1);
+          }
+          C.fire.visible = f > 0;
+          if (f > 0) {
+            const sc = (8 + 24 * f) * (1 + Math.sin(now / 40) * 0.15);
+            C.fire.scale.set(sc, sc, 1); C.fire.material.color.set(f > 0.7 ? '#ffb347' : '#ff5a36').multiplyScalar(R.K);
+            if (dt && Math.random() < dt * 70 * f) parts.push({ x: ent.x + ent.fx * 3, y: ent.y + ent.fy * 3, vx: (Math.random() - .5) * 40, vy: (Math.random() - .5) * 40, t: 0, life: 0.5, size: 3, color: Math.random() < .5 ? '#ff5a36' : '#ffd28a', kind: 'ember', rot: 0, drag: 3, rise: 0, h0: 2 + Math.random() * 3, vh: 30 + Math.random() * 40 });
+          }
         }
       }
 
@@ -3711,7 +3746,7 @@ Keeper duel   shot × distance
           const sc = s && R.shot0 ? shotCam64(R, s) : null;
           let cam = sc ? sc.cam : [R.camX, 390, 600], look = sc ? sc.look : [R.camX, 0, 20];
           if (ov.windup) { // push in on the kicker over the wind-up: 20%, or a hard 55% snap-zoom point-blank
-            const u = easeOut(clamp((now - ov.windup.t0) / ov.windup.dur, 0, 1)), q = ov.windup.p, kp = [q.x - CX, 10, q.y - CY], z = ov.windup.snap ? 0.55 : 0.2;
+            const u = easeOut(clamp((now - ov.windup.t0) / ov.windup.dur, 0, 1)), q = ov.windup.p, kp = [q.x - CX, 10, q.y - CY], z = ov.windup.snap ? 0.55 : ov.windup.C.footFire ? 0.4 : 0.2;
             cam = cam.map((v, i) => lerp(v, kp[i], z * u)); look = look.map((v, i) => lerp(v, kp[i], 0.4 * u));
           }
           if (ov.duelCam) { // duel: snap to a medium close-up of both players
@@ -3794,7 +3829,7 @@ Keeper duel   shot × distance
           return { cam: [kx + out * 70, 74, kz * 0.4 + 42], look: [lerp(kx, bx, 0.75), Math.max(8, by * 0.6), lerp(kz, bz, 0.75)], roll: 0, fov: 34 };
         }
         if (special && u >= 0.12) // bullet-cam: skimming the grass behind the ball (clear of its trailing FX), banking into the flight
-          return { cam: [bx - S.dx * 95 + px * 30, Math.max(12, by * 0.6 + 10), bz - S.dz * 95 + pz * 30], look: [bx + S.dx * 140, by * 0.6 + 6, bz + S.dz * 140], roll: Math.sin(u * Math.PI) * px * 0.08, fov: 36 };
+          return { cam: [bx - S.dx * 95 + px * 30, Math.max(12, by * 0.6 + 10), bz - S.dz * 95 + pz * 30], look: [bx + S.dx * 140, by * 0.6 + 6, bz + S.dz * 140], roll: Math.sin(u * Math.PI) * px * 0.08, fov: lerp(46, 36, easeOut(clamp((u - 0.12) / 0.25, 0, 1))) }; // the lens snaps wide on launch, then settles: speed
         // Chase cam: high and a little to the side, so the shooter's body doesn't fill the frame.
         const chase = { cam: [bx - S.dx * 90 + px * 30, by + 60, bz - S.dz * 90 + pz * 30], look: [bx + S.dx * 140, 8, bz + S.dz * 140], roll: 0, fov: 34 };
         const side = { cam: [bx + px * 120 - S.dx * 20, 40, bz + pz * 120 - S.dz * 20], look: [bx + S.dx * 20, by, bz + S.dz * 20], roll: 0, fov: 34 };
@@ -3812,7 +3847,7 @@ Keeper duel   shot × distance
         if (!o.boom && t >= 1.22) { o.boom = true; sfx('impact'); shake(0.35); impactFx(p.x, p.y, shotMove && engineMode === 'hd' ? 'charge' : 'special'); }
         const rel = t >= 1.36, fin = easeOut(clamp((t - 1.36) / 0.5, 0, 1)), kick = clamp((t - 1.36) / 0.15, 0, 1);
         const yaw = C.root.rotation.y, fx = Math.cos(yaw), fz = -Math.sin(yaw), sx = Math.sin(yaw), sz = Math.cos(yaw);
-        if (shotMove && !o.hit && t >= 1.42 && engineMode === 'hd') { o.hit = true; sfx('kick'); shake(0.5); squash(fx, fz, 0.35); impactFx(p.x, p.y, 'special'); }
+        if (shotMove && !o.hit && t >= 1.42 && engineMode === 'hd') { o.hit = true; sfx('kick'); if (choreo(m).sound) sfx(choreo(m).sound); shake(0.5); squash(fx, fz, 0.35); impactFx(p.x, p.y, 'special'); }
         const px = p.x - CX, pz = p.y - CY;
         const at = (a, b, h) => [px + fx * a + sx * b, h, pz + fz * a + sz * b]; // a = ahead of the player, b = to their side
         R.sky.visible = true; R.sky.material = R.skyMats[m.elem] || R.skyMats.none;
