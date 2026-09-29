@@ -67,8 +67,9 @@ The project features a **Triple-Pipeline Graphics Engine**, allowing instant swi
   * *Without ball*: Performs a high-speed dash tackle.
 * **Duel Selection**: `1`, `2`, `3`, `4` or direct mouse click on move cards.
 * **Skip Cutscenes**: `Space` or mouse click.
-* **Engine Switching**: `T` (cycles between 32-Bit Arcade ➔ 64-Bit 3D ➔ 12-Bit Amiga).
+* **Engine Switching**: `T` (cycles between 32-Bit Arcade ➔ 64-Bit 3D ➔ HD 3D ➔ 12-Bit Amiga).
 * **Debug Tools**:
+  * `F`: FPS meter (in HD it also shows the auto-quality level, which drops a step whenever the game runs under 50 FPS for 2s).
   * `P`: Audit on-screen palette (12-bit mode).
   * `M`: Toggle 320x180 mock scene.
 

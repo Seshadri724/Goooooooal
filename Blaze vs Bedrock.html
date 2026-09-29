@@ -3008,7 +3008,31 @@ Keeper duel   shot × distance
       const R3_W = 480, R3_H = 270; // N64-style internal resolution, softly upscaled by CSS
       // HD mode tuning, set by eye. Glow materials are multiplied by `glow` so they clear the bloom threshold; lit
       // surfaces (white kits, pitch lines) only just touch it. `spike` is the extra bloom at the peak of an impact.
-      const HD = { maxW: 1920, bloom: 0.45, spike: 0.75, radius: 0.4, threshold: 0.85, glow: 3 }; // impact peak = 1.2
+      const HD = { bloom: 0.45, spike: 0.75, radius: 0.4, threshold: 0.85, glow: 3 }; // impact peak = 1.2
+      // HD auto quality: when frames average slower than 50fps for 2s, step down a level (render width, then shadow map
+      // and MSAA, then particles drawn). It never steps back up by itself — rAF is capped at the display's refresh, so
+      // spare headroom can't be measured — but switching into HD starts again from level 0. F toggles the meter.
+      const QUAL = [
+        { w: 1920, sh: 2048, aa: 4, parts: 700 },
+        { w: 1440, sh: 2048, aa: 4, parts: 700 },
+        { w: 1280, sh: 1024, aa: 0, parts: 450 },
+        { w: 960, sh: 1024, aa: 0, parts: 300 },
+      ];
+      const perf = { lvl: 0, avg: 1000 / 60, t: 0, show: false };
+      function autoQuality(ms) {
+        if (ms > 100) return; // a tab switch or load hitch, not steady load
+        perf.avg += (ms - perf.avg) * 0.05; perf.t += ms / 1000;
+        if (engineMode !== 'hd' || !r3 || perf.t < 2 || perf.avg < 20 || perf.lvl === QUAL.length - 1) return;
+        perf.lvl++; perf.t = 0; size3D();
+      }
+      function drawPerf() {
+        const hd = engineMode === 'hd' && r3, q = QUAL[perf.lvl];
+        const s = `${Math.round(1000 / perf.avg)} FPS · ${hd ? `Q${perf.lvl} ${r3.renderer.domElement.width}px${q.aa ? ' MSAA' : ''}` : engineMode.toUpperCase()}`;
+        vg.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+        vg.font = '700 11px "Azeret Mono", monospace'; vg.textAlign = 'left'; vg.textBaseline = 'top';
+        vg.fillStyle = 'rgba(8,11,22,.8)'; vg.fillRect(8, H - 26, vg.measureText(s).width + 12, 18);
+        vg.fillStyle = perf.avg > 20 ? '#ff5a36' : '#35d6c0'; vg.fillText(s, 14, H - 22); vg.textBaseline = 'alphabetic';
+      }
       let r3 = null, r3Loading = null;
       function load3D() {
         if (r3 || r3Loading) return;
@@ -3022,13 +3046,17 @@ Keeper duel   shot × distance
             if (is3D()) setEngineMode('32bit');
           });
       }
-      // 64-bit: fixed 480x270, no tone mapping. HD: native resolution (capped), tone mapping, soft 2048 shadows.
+      // 64-bit: fixed 480x270, no tone mapping. HD: native resolution (capped by the quality level), tone mapping, soft shadows.
       function size3D() {
         if (!r3) return;
-        const R = r3, T = R.THREE, hd = engineMode === 'hd', sh = R.sun.shadow, sm = hd ? 2048 : 1024;
-        const w = hd ? Math.min(HD.maxW, cv.width) : R3_W, h = hd ? Math.round(w * 9 / 16) : R3_H;
+        const R = r3, T = R.THREE, hd = engineMode === 'hd', sh = R.sun.shadow, Q = QUAL[perf.lvl], sm = hd ? Q.sh : 1024;
+        const w = hd ? Math.min(Q.w, cv.width) : R3_W, h = hd ? Math.round(w * 9 / 16) : R3_H;
         R.renderer.setSize(w, h, false);
-        if (hd) { R.composer.setSize(w, h); R.impact.uniforms.uCell.value = Math.max(3, h / 160); } // screentone dot pitch in px
+        if (hd) {
+          const C = R.composer;
+          if (C.renderTarget1.samples !== Q.aa) for (const rt of [C.renderTarget1, C.renderTarget2]) { rt.samples = Q.aa; rt.dispose(); } // rebuilt on next use
+          C.setSize(w, h); R.impact.uniforms.uCell.value = Math.max(3, h / 160); // screentone dot pitch in px
+        }
         R.renderer.toneMapping = hd ? T.NeutralToneMapping : T.NoToneMapping;
         R.renderer.shadowMap.type = hd ? T.PCFSoftShadowMap : T.PCFShadowMap;
         if (sh.mapSize.x !== sm) { sh.mapSize.set(sm, sm); if (sh.map) { sh.map.dispose(); sh.map = null; } }
@@ -3497,7 +3525,7 @@ Keeper duel   shot × distance
         const pos = R.pGeo.attributes.position.array, col = R.pGeo.attributes.color.array;
         const spos = R.sGeo.attributes.position.array, scol = R.sGeo.attributes.color.array;
         let n = 0, ns = 0;
-        for (let i = 0, N = Math.min(parts.length, 700); i < N; i++) {
+        for (let i = 0, N = Math.min(parts.length, hd ? QUAL[perf.lvl].parts : 700); i < N; i++) {
           const p = parts[i], u = 1 - p.t / p.life;
           let c = R.colors.get(p.color); if (!c) { c = new R.THREE.Color(p.color); R.colors.set(p.color, c); }
           const y = Math.max(0.6, (p.h0 ?? 8) + (p.vh || 0) * p.t - 0.5 * (p.g || 0) * p.t * p.t + (p.kind === 'ember' ? p.t * 40 : 0));
@@ -3771,7 +3799,7 @@ Keeper duel   shot × distance
 
       let last = performance.now();
       function frame(now) {
-        const dt = Math.min(0.05, (now - last) / 1000); last = now;
+        const dt = Math.min(0.05, (now - last) / 1000); autoQuality(now - last); last = now;
         if (!mockMode || engineMode !== '12bit') {
           if (hitStop > 0) { // the world holds still, cutscene timelines included; camera shake keeps running
             hitStop = Math.max(0, hitStop - dt);
@@ -3785,6 +3813,7 @@ Keeper duel   shot × distance
           shakeT = Math.max(0, shakeT - dt);
         }
         draw(now);
+        if (perf.show) drawPerf();
         requestAnimationFrame(frame);
       }
 
@@ -3825,6 +3854,7 @@ Keeper duel   shot × distance
         $('kickerTag').textContent = M.kicker + ' · 1v1 duel prototype';
         if (is3D()) load3D();
         if (r3) r3.canvas.hidden = !is3D();
+        if (m === 'hd') { perf.lvl = 0; perf.t = 0; perf.avg = 1000 / 60; } // a fresh chance at full quality
         resize();
         paintPortraits();
         addText(CX, CY - 30, M.toast, M.toastCol);
@@ -3835,6 +3865,7 @@ Keeper duel   shot × distance
       window.addEventListener('keydown', e => {
         const c = e.code;
         if (c === 'KeyT') { e.preventDefault(); setEngineMode(NEXT_MODE[engineMode]); return; }
+        if (c === 'KeyF') { e.preventDefault(); perf.show = !perf.show; return; }
         if (c === 'KeyP' && engineMode === '12bit') { e.preventDefault(); checkPalette(); return; }
         if (c === 'KeyM' && engineMode === '12bit') { e.preventDefault(); mockMode = !mockMode; $('mockBtn').textContent = mockMode ? 'Mock: ON [M]' : 'Mock: 320x180 [M]'; return; }
         if (menuResolve) {
