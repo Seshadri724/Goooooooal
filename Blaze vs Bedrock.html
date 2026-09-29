@@ -974,7 +974,7 @@ Keeper duel   shot × distance
         none: { name: 'Basic', c: '#9aa6b8', g: '#ffffff', d: '#141a2a', c12: '#89a', g12: '#fff', d12: '#123' },
       };
       const BEATS = { flame: 'gale', gale: 'stone', stone: 'flame' };
-      const KIND = { shot: 'Shot', dribble: 'Dribble', block: 'Block', catch: 'Save' };
+      const KIND = { shot: 'Shot', dribble: 'Dribble', block: 'Block', catch: 'Save', celebrate: 'Goal' };
       const BASIC = {
         shot: { name: 'Power Shot', kind: 'shot', elem: 'none', power: 18, tp: 0 },
         dribble: { name: 'Push Through', kind: 'dribble', elem: 'none', power: 15, tp: 0 },
@@ -1469,7 +1469,7 @@ Keeper duel   shot × distance
       // ---------- match flow ----------
       function placeKickoff(team) {
         for (const p of players) { p.vx = p.vy = 0; p.stun = 0; p.dash = 0; }
-        ball.shot = null; keeperHold = null; trail = []; ball.vx = ball.vy = 0; ball.noPick = null; parts = []; rings = [];
+        ball.shot = null; keeperHold = null; trail = []; ball.vx = ball.vy = 0; ball.noPick = null; parts = []; rings = []; netHit = null;
         keepers.forEach(k => { k.y = CY; k.dv = null; });
         if (team === 0) { haru.x = CX - 6; haru.y = CY; haru.fx = 1; haru.fy = 0; jin.x = CX + 96; jin.y = CY; jin.fx = -1; jin.fy = 0; ball.owner = haru; }
         else { jin.x = CX + 6; jin.y = CY; jin.fx = -1; jin.fy = 0; haru.x = CX - 96; haru.y = CY; haru.fx = 1; haru.fy = 0; ball.owner = jin; }
@@ -1892,14 +1892,58 @@ Keeper duel   shot × distance
         mode = 'play';
       }
 
+      // ---------- goal payoff (3D): the net bulges, a slow-motion replay of the shot, then the scorer's celebration ----------
+      // Every frame of a live shot is recorded (shallow copies of the ball, players and keepers, plus the clock), so the
+      // replay just plays the frames back — interpolated, at SLOW speed — and the 3D renderer draws them as usual.
+      const SLOW = 0.4, REPLAY_S = 1.6; // playback speed; seconds of game time replayed (the run-up to the goal)
+      let rec = [], recShot = null, netHit = null; // netHit: { team, z, h, t0, k } — which net, where, when, time scale
+      const snap = () => ({ c: clock, b: { ...ball }, p: players.map(p => ({ ...p })), k: keepers.map(k => ({ ...k })) });
+      function applySnap(f) {
+        clock = f.c; Object.assign(ball, f.b);
+        players.forEach((p, i) => Object.assign(p, f.p[i])); keepers.forEach((k, i) => Object.assign(k, f.k[i]));
+      }
+      // Frames carry their own time `r`, advanced only while recording: the clock keeps running through the keeper's
+      // cutscene and the duel screens, which aren't recorded, and would leave a dead gap in the replay.
+      function recordShot(dt) { // called every simulated frame
+        if (!ball.shot || ov.replay || !(mode === 'play' || ov.save)) return; // frozen menus and duels would only stall the replay
+        if (ball.shot !== recShot) { recShot = ball.shot; rec = []; }
+        const f = snap(); f.r = rec.length ? rec[rec.length - 1].r + dt : 0;
+        rec.push(f); if (rec.length > 300) rec.shift();
+      }
+      function tickReplay(o, now) { // one replay frame: pose the world at the recorded moment, blended between samples
+        const r = Math.min(o.c1, o.c0 + (now - o.t0) / 1000 * SLOW), F = o.frames;
+        let i = F.findIndex(f => f.r > r); if (i < 0) i = F.length; i = Math.max(1, i);
+        const a = F[i - 1], b = F[Math.min(i, F.length - 1)], u = b.r > a.r ? (r - a.r) / (b.r - a.r) : 0;
+        applySnap(a); clock = lerp(a.c, b.c, u);
+        ball.x = lerp(a.b.x, b.b.x, u); ball.y = lerp(a.b.y, b.b.y, u);
+        players.forEach((p, j) => { p.x = lerp(a.p[j].x, b.p[j].x, u); p.y = lerp(a.p[j].y, b.p[j].y, u); });
+        keepers.forEach((k, j) => { k.y = lerp(a.k[j].y, b.k[j].y, u); });
+        if (r >= o.c1 && !o.hit) { o.hit = true; netHit = { team: o.team, z: ball.y - CY, h: r3 ? r3.ballH : 10, t0: now, k: SLOW }; sfx('goal'); }
+      }
+      async function playReplay(team) {
+        if (rec.length < 10 || recShot !== ball.shot) return; // e.g. a ball dribbled over the line: nothing to replay
+        const live = snap(), frames = rec.slice(), c1 = frames[frames.length - 1].r, c0 = Math.max(0, c1 - REPLAY_S);
+        netHit = null; parts = []; rings = [];
+        await timed('replay', { frames, c0, c1, team }, (c1 - c0) / SLOW * 1000 + 1100); // + a beat on the bulging net
+        applySnap(live);
+      }
+
       async function goalScored(scoringTeam) {
         const id = matchId; mode = 'freeze'; sfx('goal'); shake(0.5);
         score[scoringTeam]++;
         const ch = scoringTeam === 0 ? HARU : JIN;
+        netHit = { team: scoringTeam, z: ball.y - CY, h: r3 ? r3.ballH : 10, t0: performance.now(), k: 1 };
         burst(ball.x, ball.y, ch.elem, 48, 380, 1.1);
         impactFx(ball.x, ball.y, 'goal');
         await timed('banner', { text: 'GOAL!!', sub: `${ch.name.toUpperCase()} SCORES!`, color: ELEM[ch.elem].c, big: true }, 1800);
         if (id !== matchId) return; // Restart pressed during the banner: don't kick off a second match on top of the new one
+        if (is3D() && r3) {
+          await playReplay(scoringTeam);
+          if (id !== matchId) return;
+          const scorer = players.find(p => p.team === scoringTeam);
+          await playCut(scorer, { name: 'GOAL!!', kind: 'celebrate', elem: ch.elem, power: 0, tp: 0 });
+          if (id !== matchId) return;
+        }
         if (score[0] >= GOALS_TO_WIN || score[1] >= GOALS_TO_WIN) {
           endMatch(score[0] >= GOALS_TO_WIN ? 0 : 1);
         } else {
@@ -2548,13 +2592,14 @@ Keeper duel   shot × distance
           vg.restore();
           vg.font = '700 15px "Azeret Mono", monospace'; vg.textAlign = 'center'; vg.textBaseline = 'alphabetic';
           vg.fillStyle = impact ? '#ffffff' : 'rgba(255,255,255,.92)';
-          vg.fillText(`${ch.name.toUpperCase()}  ·  ${E.name.toUpperCase()} ${KIND[m.kind].toUpperCase()}`, 640, 200);
+          vg.fillText(m.kind === 'celebrate' ? `${ch.name.toUpperCase()} SCORES!` : `${ch.name.toUpperCase()}  ·  ${E.name.toUpperCase()} ${KIND[m.kind].toUpperCase()}`, 640, 200);
         }
         const lb = Math.min(1, t / 0.16) * 56;
         vg.fillStyle = '#05070e'; vg.fillRect(-30, -30, W + 60, lb + 30); vg.fillRect(-30, H - lb, W + 60, lb + 30);
         if (lb >= 56) {
           vg.font = '700 12px "Azeret Mono", monospace'; vg.textBaseline = 'middle';
-          vg.textAlign = 'left'; vg.fillStyle = E.c; vg.fillText(`${KIND[m.kind].toUpperCase()}  ·  ${E.name.toUpperCase()}  ·  PWR ${m.power}  ·  ${m.tp} TP`, 24, H - 28);
+          vg.textAlign = 'left'; vg.fillStyle = E.c;
+          vg.fillText(m.kind === 'celebrate' ? `AKEBONO ${score[0]} – ${score[1]} TETSUZAN` : `${KIND[m.kind].toUpperCase()}  ·  ${E.name.toUpperCase()}  ·  PWR ${m.power}  ·  ${m.tp} TP`, 24, H - 28);
           vg.textAlign = 'right'; vg.fillStyle = '#98a3c2'; vg.fillText('Space or tap to skip', W - 24, H - 28);
           vg.textBaseline = 'alphabetic';
         }
@@ -3143,15 +3188,18 @@ Keeper duel   shot × distance
         const netTex = canvasTex(16, 16, (c, w, h) => { c.strokeStyle = 'rgba(255,255,255,.5)'; c.lineWidth = 1; c.strokeRect(0, 0, w, h); });
         netTex.wrapS = netTex.wrapT = THREE.RepeatWrapping;
         const postMat = toon('#ffffff'), GW = GY1 - GY0, GH = 34, GD = 26, zc = (GY0 + GY1) / 2 - CY;
+        const backNets = []; // per side: the back net, subdivided so a goal can bulge it (draw64)
         for (const side of [0, 1]) {
           const gx = (side === 0 ? F.x0 : F.x1) - CX, dir = side === 0 ? -1 : 1;
           for (const z of [GY0 - CY, GY1 - CY]) add(stadium, new THREE.CylinderGeometry(1.6, 1.6, GH, 6), postMat, gx, GH / 2, z);
           add(stadium, new THREE.CylinderGeometry(1.6, 1.6, GW, 6), postMat, gx, GH, zc).rotation.x = Math.PI / 2;
-          const net = (w, h, x, y, z, rx, ry) => {
+          const net = (w, h, x, y, z, rx, ry, seg = 1) => {
             const t = netTex.clone(); t.repeat.set(w / 6, h / 6); t.needsUpdate = true;
-            add(stadium, new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, side: THREE.DoubleSide, depthWrite: false }), x, y, z, false).rotation.set(rx, ry, 0);
+            const m = add(stadium, new THREE.PlaneGeometry(w, h, seg * 2, seg), new THREE.MeshBasicMaterial({ map: t, transparent: true, side: THREE.DoubleSide, depthWrite: false }), x, y, z, false);
+            m.rotation.set(rx, ry, 0); return m;
           };
-          net(GW, GH, gx + dir * GD, GH / 2, zc, 0, Math.PI / 2);       // back
+          const back = net(GW, GH, gx + dir * GD, GH / 2, zc, 0, Math.PI / 2, 10);
+          backNets.push({ mesh: back, dir, gx, dirty: false });
           net(GD, GW, gx + dir * GD / 2, GH, zc, -Math.PI / 2, 0);      // roof
           for (const z of [GY0 - CY, GY1 - CY]) net(GD, GH, gx + dir * GD / 2, GH / 2, z, 0, 0); // sides
         }
@@ -3330,7 +3378,7 @@ Keeper duel   shot × distance
 
         return {
           THREE, canvas, renderer, scene, camera, sun, composer, bloom, impact, glows, stadium, rigs, ballMesh, ballBody, m4: new THREE.Matrix4(), q: new THREE.Quaternion(), ballQ: new THREE.Quaternion(), glow, decalTex, decalPool, trailGeo, trailLine, pGeo, sGeo, points, shotFx, multiBalls, laser, laserRings, thrust, smoke, ringPool, sky, skyMats, barrier, walls,
-          colors: new Map(), hist: [], ballH: 5.5, camX: 0, shotRef: null, shot0: null, last: 0, aura: 0, K: 1,
+          backNets, goal: { GH, GD, zc }, colors: new Map(), hist: [], ballH: 5.5, camX: 0, shotRef: null, shot0: null, last: 0, aura: 0, K: 1,
           v: new THREE.Vector3(), v2: new THREE.Vector3(), dir: new THREE.Vector3(), up: new THREE.Vector3(0, 1, 0)
         };
       }
@@ -3428,6 +3476,23 @@ Keeper duel   shot × distance
           const w = Math.sin(prog * Math.PI * 5) * 14 * (1 - prog);
           R.ballMesh.position.x -= R.shot0.dz * w; R.ballMesh.position.z += R.shot0.dx * w;
         }
+        // Goal: the ball carries on to the back of the net, which balloons out round it (a damped bounce) and settles;
+        // the ball rides the bulge, then drops into the bottom of the net.
+        const N = netHit, G = R.goal;
+        R.backNets.forEach((B, side) => {
+          const on = N && side === (N.team === 0 ? 1 : 0);
+          if (!on && !B.dirty) return;
+          const e = on ? Math.max(0, (now - N.t0) / 1000 * N.k) : 0, reach = G.GD / 320; // seconds for the ball to reach the back
+          const tau = Math.max(0, e - reach), d = on && e > reach ? 16 * Math.exp(-3 * tau) * Math.sin(tau * 12) : 0;
+          const pos = B.mesh.geometry.attributes.position, bx = -(N ? N.z - G.zc : 0), by = (N ? N.h : 0) - G.GH / 2;
+          for (let i = 0; i < pos.count; i++) {
+            const g = Math.exp(-((pos.getX(i) - bx) ** 2 + (pos.getY(i) - by) ** 2) / 450);
+            pos.setZ(i, B.dir * d * g * (Math.abs(pos.getY(i)) < G.GH / 2 - 0.1 ? 1 : 0.3)); // the frame edges barely move
+          }
+          pos.needsUpdate = true; B.dirty = on && e < 3;
+          if (on) R.ballMesh.position.set(B.gx + B.dir * (Math.min(G.GD, e * 320) + Math.max(0, d) - (e > reach ? 3 : 0)), lerp(N.h, 5.5, clamp(tau / 0.5, 0, 1)), N.z);
+        });
+
         const [m0, m1, m2, m3] = ballDeform(); // pitch (x, y) → world (x, z)
         // Roll about the axis across the direction of travel (up × dir): faster for topspin, reversed for backspin, tilted
         // toward vertical for sidespin.
@@ -3582,6 +3647,14 @@ Keeper duel   shot × distance
         vg.clearRect(0, 0, W, H);
         if (ov.windup) { const q = toScreen(ball.x, ball.y, R.ballH), hq = toScreen(ov.windup.p.x, ov.windup.p.y, 42); drawWindup32(ov.windup, now, q.x, q.y, hq.x, hq.y); }
         if (!ov.cut) drawTags64(now, s, special, E);
+        if (ov.replay) { // broadcast replay dressing: thin letterbox, blinking REPLAY bug
+          vg.fillStyle = '#05070e'; vg.fillRect(0, 0, W, 34); vg.fillRect(0, H - 34, W, 34);
+          vg.font = '700 13px "Azeret Mono", monospace'; vg.textBaseline = 'middle';
+          if (Math.floor(now / 500) % 2) { vg.fillStyle = '#ff5a36'; circle(vg, 26, 17, 6); vg.fill(); }
+          vg.textAlign = 'left'; vg.fillStyle = '#eef1f8'; vg.fillText('REPLAY', 40, 17);
+          vg.textAlign = 'right'; vg.fillStyle = '#98a3c2'; vg.fillText(`×${SLOW} SLOW-MO  ·  Space or tap to skip`, W - 20, H - 17);
+          vg.textBaseline = 'alphabetic';
+        }
         if (ov.vs) drawVs32(ov.vs, now);
         drawHUD32();
         if (ov.clash) drawClash32(ov.clash, now);
@@ -3612,6 +3685,10 @@ Keeper duel   shot × distance
         const bx = ball.x - CX, bz = ball.y - CY, by = R.ballH, special = s.move.tp > 0;
         const k = keepers.find(q => q.team !== s.p.team), kx = k.x - CX, kz = k.y - CY, out = k.team === 0 ? -1 : 1;
         let px = -S.dz, pz = S.dx; if (pz < 0) { px = -px; pz = -pz; } // always film from the near (camera) touchline side
+        if (ov.replay) { // slow-mo replay: low, riding alongside and a little behind the ball, all the way into the net
+          const lx = ov.replay.hit ? R.ballMesh.position.x : bx; // once it's in, keep the bulge framed
+          return { cam: [lx - S.dx * 75 + px * 60, 18 + by * 0.4, bz - S.dz * 75 + pz * 60], look: [lx + S.dx * 25, by * 0.6 + 8, bz + S.dz * 25], roll: px * 0.05, fov: 32 };
+        }
         if (s.kept || u > 0.72 || S.d < 200) {
           if (special && !s.kept && u <= 0.95) // off the keeper's hip at eye level, the ball growing into the lens
             return { cam: [kx + out * 50, 50, kz + (bz - kz) * 0.35 + 44], look: [bx, Math.max(6, by), bz], roll: px * 0.06 * (1 - u), fov: 30 };
@@ -3665,6 +3742,10 @@ Keeper duel   shot × distance
           C.root.position.x += fx * dash; C.root.position.z += fz * dash;
           R.ballMesh.position.x += fx * dash; R.ballMesh.position.z += fz * dash;
           C.legL.rotation.z = Math.sin(t * 30) * 1.1; C.legR.rotation.z = -C.legL.rotation.z; C.body.rotation.z = -0.5;
+        } else if (rel && m.kind === 'celebrate') { // leaping, both fists thrown at the sky
+          const j = Math.abs(Math.sin((t - 1.36) * 7));
+          C.root.position.y += j * 14; C.armL.rotation.x = 2.9; C.armR.rotation.x = -2.9; C.body.rotation.z = -0.15;
+          C.legL.rotation.z = 0.5 * j; C.legR.rotation.z = -0.5 * j;
         } else if (rel && (m.kind === 'block' || m.kind === 'catch')) {
           R.barrier.visible = true; for (const [el, g] of Object.entries(R.walls)) g.visible = el === m.elem;
           R.barrier.position.set(...at(34, 0, 0)); R.barrier.rotation.y = yaw; R.barrier.scale.set(1, Math.max(0.01, fin), 1);
@@ -3702,6 +3783,9 @@ Keeper duel   shot × distance
             cam = at(lerp(-75, -105, k), lerp(-55, -80, k), lerp(22, 38, k));
             look = [bp.x * 0.4 + px * 0.6, bp.y * 0.4 + 18, bp.z * 0.4 + pz * 0.6]; roll = lerp(0.18, 0.05, k); fov = lerp(25, 36, k);
           }
+        } else if (m.kind === 'celebrate') { // worm's-eye orbit rising round the scorer
+          const k = t - 1.36, a = 0.4 + k * 1.1;
+          cam = at(Math.cos(a) * 130, Math.sin(a) * 130, 12 + k * 22); look = at(0, 0, 42); roll = -0.1 + k * 0.08; fov = 32;
         } else if (m.kind === 'dribble') { cam = at(dash * 0.6 + 20, 160, 48); look = at(dash, 0, 24); roll = -0.1; fov = 30; }
         else { cam = at(170, 65, 45); look = at(28, 0, 32); roll = 0.08; fov = 32; }
         R.scene.fog.near = Math.max(140, dist + 20); R.scene.fog.far = R.scene.fog.near + 190; // the dolly-out must not fog him over
@@ -3801,12 +3885,16 @@ Keeper duel   shot × distance
       function frame(now) {
         const dt = Math.min(0.05, (now - last) / 1000); autoQuality(now - last); last = now;
         if (!mockMode || engineMode !== '12bit') {
-          if (hitStop > 0) { // the world holds still, cutscene timelines included; camera shake keeps running
+          if (ov.replay) { // slow motion: the recording drives the world; the shot's trail FX re-emit at replay speed
+            tickReplay(ov.replay, now);
+            if (ball.shot && !ov.replay.hit) emitShot(dt * SLOW);
+            updateParts(dt * SLOW);
+          } else if (hitStop > 0) { // the world holds still, cutscene timelines included; camera shake keeps running
             hitStop = Math.max(0, hitStop - dt);
             if (ov.cut) ov.cut.t0 += dt * 1000;
           } else {
             clock += dt; tickKeepers();
-            update(dt);
+            update(dt); recordShot(dt);
             for (const t of texts) t.t += dt; texts = texts.filter(t => t.t < t.life);
             updateParts(dt);
           }
