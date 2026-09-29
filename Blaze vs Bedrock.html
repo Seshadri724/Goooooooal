@@ -1649,7 +1649,10 @@ Keeper duel   shot × distance
 
       // Kick wind-up on the pitch, 0.3s: the plant foot stamps (dust, thud), then the kicking leg draws back while element
       // sparks rush into the ball and the pitch dims (drawn by windK users). The strike is the launch in shoot().
-      const windK = (o, now) => clamp(((now - o.t0) / o.dur - 0.5) / 0.5, 0, 1); // 0 during the plant, 0→1 over the draw-back
+      // The wind-up ends with a 90ms strike: the drawn-back boot swings through (finishRigs) and meets the ball exactly as
+      // the wind-up ends and shoot() launches it, so contact, hit-stop and sound all land on the same frame.
+      const STRIKE = 90;
+      const windK = (o, now) => clamp(((now - o.t0) / (o.dur - (o.strike || 0)) - 0.5) / 0.5, 0, 1); // 0 during the plant, 0→1 over the draw-back
       async function windUp(p, m, snap) {
         const E = ELEM[m.elem], C = choreo(m), bx = ball.x, by = ball.y, dur = C.windup ? 520 : 300; // signature wind-ups run longer
         sfx('plant'); shake(C.windup === 'stamp' ? 0.25 : 0.06);
@@ -1669,7 +1672,7 @@ Keeper duel   shot × distance
             parts.push({ x: bx + Math.cos(a) * 22, y: by + Math.sin(a) * 22, vx: -Math.sin(a) * 160, vy: Math.cos(a) * 160, t: 0, life: 0.35, size: 2, color: ELEM.gale.g, kind: 'wisp', rot: 0, drag: 1, rise: 0 });
           }
         }, dur / 2);
-        await timed('windup', { p, m, C, snap }, dur);
+        await timed('windup', { p, m, C, snap, strike: STRIKE }, dur + STRIKE);
       }
       function drawWindup32(o, now, x, y, hx, hy) { // (x, y) = the ball, (hx, hy) = the kicker's head, in 960x540 overlay space
         const k = windK(o, now), E = ELEM[o.m.elem];
@@ -1921,7 +1924,7 @@ Keeper duel   shot × distance
       // ---------- goal payoff (3D): the net bulges, a slow-motion replay of the shot, then the scorer's celebration ----------
       // Every frame of a live shot is recorded (shallow copies of the ball, players and keepers, plus the clock), so the
       // replay just plays the frames back — interpolated, at SLOW speed — and the 3D renderer draws them as usual.
-      const SLOW = 0.4, REPLAY_S = 1.6; // playback speed; seconds of game time replayed (the run-up to the goal)
+      const SLOW = 0.4, REPLAY_S = 1.3; // playback speed; seconds of game time replayed (the run-up to the goal)
       let rec = [], recShot = null, netHit = null; // netHit: { team, z, h, t0, k } — which net, where, when, time scale
       const snap = () => ({ c: clock, b: { ...ball }, p: players.map(p => ({ ...p })), k: keepers.map(k => ({ ...k })) });
       function applySnap(f) {
@@ -1961,13 +1964,17 @@ Keeper duel   shot × distance
         netHit = { team: scoringTeam, z: ball.y - CY, h: r3 ? r3.ballH : 10, t0: performance.now(), k: 1 };
         burst(ball.x, ball.y, ch.elem, 48, 380, 1.1);
         impactFx(ball.x, ball.y, 'goal');
-        await timed('banner', { text: 'GOAL!!', sub: `${ch.name.toUpperCase()} SCORES!`, color: ELEM[ch.elem].c, big: true }, 1800);
+        // In 3D a goal runs banner (1.1s) → replay (specials only, ~3.5s) → celebration (1.5s), each skippable; every other
+        // goal is banner + celebration, so a match isn't interrupted for long each time someone scores.
+        const long3D = is3D() && r3, special = long3D && !!ball.shot && ball.shot.move.tp > 0;
+        await timed('banner', { text: 'GOAL!!', sub: `${ch.name.toUpperCase()} SCORES!`, color: ELEM[ch.elem].c, big: true }, long3D ? 1100 : 1800);
         if (id !== matchId) return; // Restart pressed during the banner: don't kick off a second match on top of the new one
-        if (is3D() && r3) {
-          await playReplay(scoringTeam);
+        if (long3D) {
+          if (special) await playReplay(scoringTeam);
           if (id !== matchId) return;
-          const scorer = players.find(p => p.team === scoringTeam);
-          await playCut(scorer, { name: 'GOAL!!', kind: 'celebrate', elem: ch.elem, power: 0, tp: 0 });
+          const celebration = timed('cut', { p: players.find(p => p.team === scoringTeam), m: { name: 'GOAL!!', kind: 'celebrate', elem: ch.elem, power: 0, tp: 0 }, boom: true }, 1500);
+          ov.cut.t0 -= 1360; ov.cut.dur = 2860; // the timeline joins the release beat: no swoop or charge-up
+          await celebration;
           if (id !== matchId) return;
         }
         if (score[0] >= GOALS_TO_WIN || score[1] >= GOALS_TO_WIN) {
@@ -3172,8 +3179,28 @@ Keeper duel   shot × distance
         };
 
         // ---- stadium: the 32-bit pitch canvas becomes the ground texture ----
-        const pitchTex = new THREE.CanvasTexture(bg32); pitchTex.colorSpace = THREE.SRGBColorSpace; pitchTex.anisotropy = 4;
-        const pitch = add(scene, new THREE.PlaneGeometry(W, H), new THREE.MeshLambertMaterial({ map: pitchTex }), W / 2 - CX, 0, H / 2 - CY, false);
+        // The ground keeps the 32-bit pitch (stripes and markings) but gets its own 2x texture: soft patches of lighter and
+        // darker grass, fine blade speckle, and restrained wear (bare, trodden earth) at the goalmouths and penalty spots.
+        // Kept quiet on purpose: players and ball must still stand out. Generated here, so there are no assets to license.
+        const turf = document.createElement('canvas'); turf.width = W * 2; turf.height = H * 2; const tg = turf.getContext('2d');
+        tg.drawImage(bg32, 0, 0, turf.width, turf.height);
+        for (let i = 0; i < 70; i++) {
+          const x = sr(i * 7.3) * turf.width, y = sr(i * 3.1 + 5) * turf.height, r = 70 + sr(i * 1.7) * 130, lite = i % 2, gr = tg.createRadialGradient(x, y, 0, x, y, r);
+          gr.addColorStop(0, lite ? 'rgba(150,200,90,.07)' : 'rgba(10,50,25,.09)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); tg.fillStyle = gr; tg.fillRect(x - r, y - r, r * 2, r * 2);
+        }
+        for (let i = 0; i < 26000; i++) { // blades
+          tg.fillStyle = i % 3 ? 'rgba(10,45,20,.11)' : 'rgba(170,215,110,.08)';
+          tg.fillRect(sr(i * 1.31) * turf.width, sr(i * 2.77 + 1) * turf.height, 1.2, 3 + sr(i * 4.1) * 3);
+        }
+        for (const [wx, wy, rx, ry] of [[F.x0, CY, 60, 95], [F.x1, CY, 60, 95], [F.x0 + 95, CY, 16, 16], [F.x1 - 95, CY, 16, 16]]) { // wear
+          tg.save(); tg.translate(wx * 2, wy * 2); tg.scale(rx * 2, ry * 2);
+          const gr = tg.createRadialGradient(0, 0, 0, 0, 0, 1); gr.addColorStop(0, 'rgba(120,96,58,.34)'); gr.addColorStop(0.6, 'rgba(110,100,60,.16)'); gr.addColorStop(1, 'rgba(110,100,60,0)');
+          tg.fillStyle = gr; tg.fillRect(-1, -1, 2, 2); tg.restore();
+        }
+        const pitchTex = new THREE.CanvasTexture(turf); pitchTex.colorSpace = THREE.SRGBColorSpace; pitchTex.anisotropy = 8;
+        const bumpTex = canvasTex(128, 128, (c, w, h) => { for (let i = 0; i < 1800; i++) { const v = 90 + Math.floor(sr(i * 5.3) * 120); c.fillStyle = `rgb(${v},${v},${v})`; c.fillRect(sr(i * 1.9) * w, sr(i * 8.1) * h, 2, 2); } });
+        bumpTex.colorSpace = THREE.NoColorSpace; bumpTex.wrapS = bumpTex.wrapT = THREE.RepeatWrapping; bumpTex.repeat.set(W / 26, H / 26);
+        const pitch = add(scene, new THREE.PlaneGeometry(W, H), new THREE.MeshLambertMaterial({ map: pitchTex, bumpMap: bumpTex, bumpScale: 0.9 }), W / 2 - CX, 0, H / 2 - CY, false);
         const stadium = new THREE.Group(); scene.add(stadium); // stands, boards, towers, goals: hidden during cutscenes
         pitch.rotation.x = -Math.PI / 2; pitch.receiveShadow = true;
 
@@ -3504,6 +3531,10 @@ Keeper duel   shot × distance
               C.touch = ball.owner === p && on > 0.2 ? Math.pow(Math.abs(Math.sin(p.ph)), 6) : 0;
               if (C.touch) (Math.sin(p.ph) > 0 ? C.legL : C.legR).rotation.z += 0.3 * C.touch;
               if (on < 0.3) C.tilt.rotation.z = Math.sin(clock * 1.3 + p.team * 2) * 0.03 * (1 - on); // weight shifting from foot to foot
+            }
+            if (windup && ov.windup.C.windup !== 'jump') { // the strike: the drawn-back boot swings through the ball, torso snapping forward
+              const o = ov.windup, sw = clamp(((now - o.t0) - (o.dur - o.strike)) / o.strike, 0, 1), f = sw * sw;
+              if (sw > 0) { C.legR.rotation.z = lerp(C.legR.rotation.z, 1.6, f); C.body.rotation.z = lerp(C.body.rotation.z, -0.2, f); C.armL.rotation.z = lerp(C.armL.rotation.z, 0.8, f); }
             }
             const s = ball.shot;
             if (s && s.p === p && !windup) { // follow-through: the kicking leg swings through, torso leans back, arms balance
