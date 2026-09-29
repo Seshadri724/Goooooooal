@@ -1062,13 +1062,16 @@ Keeper duel   shot × distance
       const other = p => p === haru ? jin : haru;
 
       // ---------- 32-Bit Arcade Audio System ----------
-      let AC = null, muted = false, noiseBuf = null;
+      let AC = null, muted = false, noiseBuf = null, crowdG = null;
       function initAudio() {
         if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
         try {
           AC = new (window.AudioContext || window.webkitAudioContext)();
           const n = AC.sampleRate; noiseBuf = AC.createBuffer(1, n, AC.sampleRate);
           const d = noiseBuf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+          const bed = AC.createBufferSource(), bp = AC.createBiquadFilter(); crowdG = AC.createGain(); // ambient crowd: looped noise, level follows `excite`
+          bed.buffer = noiseBuf; bed.loop = true; bp.type = 'bandpass'; bp.frequency.value = 650; bp.Q.value = 0.7; crowdG.gain.value = 0;
+          bed.connect(bp).connect(crowdG).connect(AC.destination); bed.start();
         } catch (e) { AC = null; }
       }
       function tone(type, f0, f1, dur, vol, delay = 0) {
@@ -1181,6 +1184,10 @@ Keeper duel   shot × distance
         save: [3, 0.5], bigSave: [5, 1], beaten: [5, 1], goal: [6, 1],
       };
       let hitStop = 0, imp = null, lastFlash = -1e9, clock = 0; // clock: game seconds, stands still during hit-stop
+      // Crowd excitement 0..1: raised by moments (a special shot 0.7, a goal 1), drifting back to a 0.15 murmur. It drives the
+      // stand animation and floodlight-era sparkle in draw64 and the ambient crowd noise in frame().
+      let excite = 0.15;
+      const cheer = v => { excite = Math.max(excite, v); };
       function impactFx(x, y, kind) {
         const [frames, str] = IMPACT[kind], hold = frames / 60, now = performance.now();
         hitStop = Math.max(hitStop, hold);
@@ -1325,6 +1332,7 @@ Keeper duel   shot × distance
       function keeperContact(k, shot) { // the shot's signature reaction where it meets the keeper
         const C = choreo(shot.move);
         if (C.sound) sfx('crackle');
+        cheer(shot.move.tp > 0 ? 0.85 : 0.6); // a save gets a roar too; a goal tops it a moment later
         if (C.push) k.dv.shove = C.push;
         if (C.lift) { k.dv.lift = true; dust(k.x, k.y, 16, '#c98f2c', 90); }
         if (C.blast) {
@@ -1619,7 +1627,7 @@ Keeper duel   shot × distance
         ball.shot = { p, move: m, elem: m.elem, style: m.style, power: pwr, targetY, cracked: false, distK, x0: ball.x, y0: ball.y, long: dist > 400, spinKind, curve, c0: clock };
         ball.bounces = 0;
         ball.noPick = { p, t: 0.6 };
-        sfx('kick'); if (choreo(m).sound) sfx('sizzle');
+        sfx('kick'); if (choreo(m).sound) sfx('sizzle'); cheer(m.tp > 0 ? 0.7 : 0.4);
         burst(ball.x, ball.y, m.elem, m.tp > 0 ? 32 : 14, 240, 0.7);
         shake(m.tp > 0 ? 0.35 : 0.16);
         squash(dx, dy, m.tp > 0 ? 0.35 : 0.25);
@@ -1947,7 +1955,7 @@ Keeper duel   shot × distance
       }
 
       async function goalScored(scoringTeam) {
-        const id = matchId; mode = 'freeze'; sfx('goal'); sfx('net'); sfx('roar'); shake(0.5);
+        const id = matchId; mode = 'freeze'; sfx('goal'); sfx('net'); sfx('roar'); cheer(1); shake(0.5);
         score[scoringTeam]++;
         const ch = scoringTeam === 0 ? HARU : JIN;
         netHit = { team: scoringTeam, z: ball.y - CY, h: r3 ? r3.ballH : 10, t0: performance.now(), k: 1 };
@@ -3175,11 +3183,13 @@ Keeper duel   shot × distance
           for (let i = 0; i < 1100; i++) { c.fillStyle = cols[Math.floor(sr(i * 3.7) * cols.length)]; c.fillRect(Math.floor(sr(i * 1.1) * w), Math.floor(sr(i * 2.3) * h), 2, 2); }
         });
         crowdTex.wrapS = crowdTex.wrapT = THREE.RepeatWrapping; crowdTex.magFilter = THREE.NearestFilter;
+        const crowd = []; // every tier's texture + material: draw64 hops, sways and sparkles them with the crowd's excitement
         const stand = (len, x, z, rotY) => {
           const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rotY;
           for (let i = 0; i < 5; i++) {
             const t = crowdTex.clone(); t.repeat.set(len / 70, (i + 1) * 0.3); t.needsUpdate = true;
-            add(g, new THREE.BoxGeometry(len, 16 * (i + 1), 24), new THREE.MeshLambertMaterial({ map: t }), 0, 8 * (i + 1), -i * 24, false);
+            const mat = new THREE.MeshLambertMaterial({ map: t }); crowd.push({ t, mat, ph: i * 1.7 + x * 0.013 + z * 0.021 });
+            add(g, new THREE.BoxGeometry(len, 16 * (i + 1), 24), mat, 0, 8 * (i + 1), -i * 24, false);
           }
           stadium.add(g);
         };
@@ -3319,6 +3329,13 @@ Keeper duel   shot × distance
         });
         const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
         glow.visible = false; scene.add(glow);
+        for (const sx of [-1, 1]) { // floodlights: a bloomy lamp flare and a faint cone of light falling on the pitch
+          const flare = glowing(new THREE.SpriteMaterial({ map: dotTex, color: '#fff6d8', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.8 }));
+          const s = new THREE.Sprite(flare); s.position.set(sx * 540, 322, -322); s.scale.set(120, 120, 1); stadium.add(s);
+          const beam = new THREE.Group(); beam.position.set(sx * 540, 320, -326); stadium.add(beam);
+          beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), new THREE.Vector3(-sx * 540, -320, 326 + 60).normalize());
+          add(beam, new THREE.ConeGeometry(190, 620, 20, 1, true).translate(0, -310, 0), new THREE.MeshBasicMaterial({ color: '#fff6d8', transparent: true, opacity: 0.012, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }), 0, 0, 0, false);
+        }
         for (const C of rigs.values()) { // a fire on the kicking boot for flame wind-ups (draw64 lights it)
           C.fire = new THREE.Sprite(new THREE.SpriteMaterial({ map: dotTex, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
           C.fire.position.set(3, -0.5, 0); C.fire.visible = false; C.ankleR.add(C.fire);
@@ -3446,7 +3463,7 @@ Keeper duel   shot × distance
 
         return {
           THREE, canvas, renderer, scene, camera, sun, composer, bloom, impact, glows, stadium, rigs, ballMesh, ballBody, m4: new THREE.Matrix4(), q: new THREE.Quaternion(), ballQ: new THREE.Quaternion(), glow, decalTex, decalPool, trailGeo, trailLine, pGeo, sGeo, points, shotFx, multiBalls, laser, laserRings, thrust, smoke, ringPool, sky, skyMats, barrier, walls,
-          backNets, goal: { GH, GD, zc }, colors: new Map(), hist: [], ballH: 5.5, camX: 0, shotRef: null, shot0: null, last: 0, aura: 0, K: 1,
+          backNets, crowd, goal: { GH, GD, zc }, colors: new Map(), hist: [], ballH: 5.5, camX: 0, shotRef: null, shot0: null, last: 0, aura: 0, K: 1,
           v: new THREE.Vector3(), v2: new THREE.Vector3(), dir: new THREE.Vector3(), up: new THREE.Vector3(0, 1, 0)
         };
       }
@@ -3756,6 +3773,13 @@ Keeper duel   shot × distance
           aim64(R, cam, look, sc ? sc.roll : 0, sc ? sc.fov : 34, shakeT > 0 && !reduced ? shakeT * (sc ? 6 : 14) : 0);
         }
         finishRigs(R, dt, now);
+        // Crowd: sways gently, hops harder and faster as it gets excited, and camera flashes pop in the stands.
+        const w = now / 1000;
+        for (const c of R.crowd) {
+          const hop = Math.max(0, Math.sin(w * (5 + excite * 6) + c.ph)) * (0.008 + 0.06 * excite * excite);
+          c.t.offset.set(Math.sin(w * 0.8 + c.ph) * 0.02 * (0.3 + excite), hop);
+          c.mat.emissive.setScalar(!reduced && Math.random() < excite * excite * 0.2 ? 0.14 : 0);
+        }
         for (const m of R.glows) m.color.copy(m.userData.base).multiplyScalar(R.K);
         if (hd) {
           // Impact frame timeline at 60fps: frames 0–1 inverted, 2–4 screentone (all inside the 6-frame hit-stop),
@@ -4032,6 +4056,8 @@ Keeper duel   shot × distance
           }
           shakeT = Math.max(0, shakeT - dt);
         }
+        excite += (0.15 - excite) * Math.min(1, dt * 0.6); // ~2s to settle back
+        if (crowdG) crowdG.gain.setTargetAtTime(muted || engineMode === '12bit' || mode === 'title' ? 0 : 0.012 + 0.07 * excite, AC.currentTime, 0.2);
         draw(now);
         if (perf.show) drawPerf();
         requestAnimationFrame(frame);
