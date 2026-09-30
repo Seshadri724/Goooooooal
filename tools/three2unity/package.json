@@ -1,0 +1,8 @@
+{
+  "name": "three2unity",
+  "version": "0.1.0",
+  "description": "Snapshot a running Three.js page (scene, lights, camera, recorded motion) into a Unity project folder",
+  "type": "module",
+  "bin": { "three2unity": "cli.mjs" },
+  "dependencies": { "puppeteer-core": "^24.0.0" }
+}

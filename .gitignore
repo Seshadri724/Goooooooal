@@ -21,8 +21,9 @@ $RECYCLE.BIN/
 # AI & Assistant Configs
 .claude/
 .agents/
+.gemini/
 
-# Python Artifacts
+# Python Artifacts & Environments
 __pycache__/
 *.py[cod]
 *$py.class
@@ -49,20 +50,61 @@ wheels/
 *.egg
 .pytest_cache/
 
-# Node / Web Build Artifacts
+# Node & Package Managers
 node_modules/
+**/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+.pnpm-store/
+.npm/
 .parcel-cache/
 .next/
 out/
+.cache/
+
+# Video & Recording Pipeline Outputs (BuildLens / Screen Captures)
+*.mp4
+*.mkv
+*.mov
+*.avi
+*.webm
+*.wmv
+*.flv
+# Large recording animations & walkthrough captures (>100MB exceeds GitHub limits)
+*-demo*.webp
+blaze-demo.webp
+*-demo.chapters.txt
+*-demo*.png
+*.recording.*
+
+# Unity Generated Artifacts (tools/three2unity)
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
 
 # Temporary, Backup & Scratch Files
 *.bak
 *.backup
+*.backup.*
+*.old
+*.orig
 *.tmp
+*.temp
 *.log
 scratch/
 .env

@@ -30,6 +30,16 @@ The project features a **Triple-Pipeline Graphics Engine**, allowing instant swi
   * **Phantom Barrage**: Splits into 5 phantom balls, reducing the goalkeeper's save chance by 10%.
   * **Photon Laser**: Ultra-high-velocity linear beam that moves too fast to block.
   * **Hellfire Missile**: Homing curve strike with zero distance falloff.
+  * **Thunderbolt Barrage** (Thunder): the ball turns into lightning that strikes the keeper instantly. Unblockable, keeper −12%, can't be held.
+  * **Gatling Volley** (Steel): the ball turns into a burst of brass slugs. Unblockable, keeper −8%, can't be held.
+  * **Avalanche Snowball** (Frost): a slow, heavy snowball that shoves the keeper back. Keeper −15%, can't be held.
+  * **Hydro Cannon** (Water): a pressurised water jet with the ball inside a bubble. Soaks the keeper, keeper −10%, can't be held.
+  * **Imperial Dragon** (Dragon): a dragon carries the ball in its jaws, its body following the ball's trail. Keeper −18%, can't be held.
+  * **Colossus Lion** (Beast): a giant lion gallops in with the ball in its jaws and roars at the keeper. Keeper −16%, can't be held.
+  * **Sword Storm** (Blade): a fan of swords and knives launches round the ball, opening mid-flight and closing on the keeper. Unblockable, keeper −14%, can't be held.
+  * **Verdant Tempest** (Nature): a helix of glowing magic leaves swirls round the ball. Keeper −10%, can't be held, and it restores 12 TP to the kicker.
+  * **Zigzag Comet** (Gale): a curve shot that swings from side to side in straight legs and sharp turns (a flash and blip at each turn), weaves past the defender and comes in on the keeper. Unblockable, keeper −8%.
+  * **Choreography (3D)**: every special shot has its own cutscene opening camera, charge weather, ground marks in flight and keeper reaction (burn, spin, riddle, shock, freeze). See `CHOREO` in the game file.
   * **Tectonic Hammer**: Massive seismic shockwave shot.
 * **Procedural Web Audio Engine**:
   * Custom synth built on Web Audio API (zero external sound files needed).
@@ -46,15 +56,15 @@ The project features a **Triple-Pipeline Graphics Engine**, allowing instant swi
 
 | Player | Team | Role | Element | Stats (Kick/Dribble/Block/Spd) | Signature Moves |
 | :--- | :--- | :--- | :---: | :---: | :--- |
-| **Haru Kagari** | Akebono FC | Striker (#9) | 🔥 Flame | 80 / 70 / 56 / 74 | *Crimson Meteor*, *Tempest Drive*, *Blaze Step*, *Gale Sweep*, *Phantom Barrage*, *Photon Laser*, *Hellfire Missile* |
+| **Haru Kagari** | Akebono FC | Striker (#9) | 🔥 Flame | 80 / 70 / 56 / 74 | *Crimson Meteor*, *Tempest Drive*, *Blaze Step*, *Gale Sweep*, *Phantom Barrage*, *Photon Laser*, *Hellfire Missile*, *Thunderbolt Barrage*, *Gatling Volley*, *Avalanche Snowball*, *Hydro Cannon*, *Imperial Dragon*, *Colossus Lion*, *Sword Storm*, *Verdant Tempest*, *Zigzag Comet* |
 | **Jin Kurogane** | Tetsuzan Academy | Libero (#5) | 🪨 Stone | 76 / 64 / 76 / 68 | *Tectonic Hammer*, *Shard Spiral*, *Granite Guard*, *Mirage Feint* |
 
 ### Goalkeepers
 
 | Keeper | Team | Role | Element | Catch Stat | Signature Save |
 | :--- | :--- | :--- | :---: | :---: | :--- |
-| **Kaito Minase** | Akebono FC | Goalkeeper (#1) | 🌪️ Gale | 60 | *Tornado Wall* (Power: 52, TP: 30) |
-| **Genta Iwaki** | Tetsuzan Academy | Goalkeeper (#1) | 🪨 Stone | 60 | *Bedrock Fortress* (Power: 54, TP: 32) |
+| **Kaito Minase** | Akebono FC | Goalkeeper (#1) | 🌪️ Gale | 60 | *Tornado Wall* (Power: 52, TP: 30), *Iron Bulwark* (giant iron shield, Power: 58, TP: 34), *Titan Hands* (two giant hands, Power: 56, TP: 32) |
+| **Genta Iwaki** | Tetsuzan Academy | Goalkeeper (#1) | 🪨 Stone | 60 | *Bedrock Fortress* (Power: 54, TP: 32), *Iron Bulwark*, *Titan Hands* |
 
 ---
 
@@ -122,6 +132,9 @@ FOOTBALL/
 ├── build_12bit_version.py      # Build script for 12-bit Amiga retro quantization pipeline
 ├── generate_32bit_game.py      # Generator script uniting 32-bit, 12-bit, and 64-bit engines
 ├── check_file.py               # Quick validation and inspection utility
+├── assets/gk-*.json            # Baked Mixamo goalkeeper clips: catch, dive, sidestep, dropkick (limb directions per frame)
+├── tools/bake-clip.mjs         # Bakes a Mixamo FBX into one of those jsons (see its header for usage)
+├── tools/three2unity/          # Developer tool: snapshot a running Three.js page into a Unity project folder (see its README)
 └── README.md                   # Project documentation and specifications
 ```
 
