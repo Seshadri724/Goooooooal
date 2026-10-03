@@ -39,11 +39,14 @@ The project features a **Triple-Pipeline Graphics Engine**, allowing instant swi
   * **Sword Storm** (Blade): a fan of swords and knives launches round the ball, opening mid-flight and closing on the keeper. Unblockable, keeper −14%, can't be held.
   * **Verdant Tempest** (Nature): a helix of glowing magic leaves swirls round the ball. Keeper −10%, can't be held, and it restores 12 TP to the kicker.
   * **Zigzag Comet** (Gale): a curve shot that swings from side to side in straight legs and sharp turns (a flash and blip at each turn), weaves past the defender and comes in on the keeper. Unblockable, keeper −8%.
+  * **Special-shot UI**: move cards carry the element colour and an animated power bar; the cutscene title card has a wiping slash banner, a line saying what the move does to the keeper, and a power meter that fills and counts up.
+  * **Release cameras**: after the strike each cutscene follows its shot with its own camera: `low` (the default low follow), `high` (a crane that lifts up and back for a bird's-eye view), `push` (a close side chase that starts on a wide lens and tightens) and `dutch` (a steeper bank).
   * **Choreography (3D)**: every special shot has its own cutscene opening camera, charge weather, ground marks in flight and keeper reaction (burn, spin, riddle, shock, freeze). See `CHOREO` in the game file.
   * **Tectonic Hammer**: Massive seismic shockwave shot.
 * **Procedural Web Audio Engine**:
   * Custom synth built on Web Audio API (zero external sound files needed).
   * Custom square, saw, noise-snare, and kick oscillators for dynamic chiptune/arcade effects, whistles, crowds, and impact explosions.
+* **UI Motion (GSAP, optional)**: the title card, fighter chips, duel menu, win screen and roster cards (ScrollTrigger reveal, stat bars filling) are animated with GSAP from cdnjs. If the CDN is unreachable or the player prefers reduced motion, the UI is simply static. HD 3D also has a cinematic grade pass (vignette, S-curve contrast, night/golden tint, light film grain) that drops with the other HD effects when quality steps down.
 * **Full Mobile & Desktop Support**:
   * Keyboard & mouse controls on desktop.
   * Responsive virtual joystick and action button on touch devices.
@@ -58,6 +61,11 @@ The project features a **Triple-Pipeline Graphics Engine**, allowing instant swi
 | :--- | :--- | :--- | :---: | :---: | :--- |
 | **Haru Kagari** | Akebono FC | Striker (#9) | 🔥 Flame | 80 / 70 / 56 / 74 | *Crimson Meteor*, *Tempest Drive*, *Blaze Step*, *Gale Sweep*, *Phantom Barrage*, *Photon Laser*, *Hellfire Missile*, *Thunderbolt Barrage*, *Gatling Volley*, *Avalanche Snowball*, *Hydro Cannon*, *Imperial Dragon*, *Colossus Lion*, *Sword Storm*, *Verdant Tempest*, *Zigzag Comet* |
 | **Jin Kurogane** | Tetsuzan Academy | Libero (#5) | 🪨 Stone | 76 / 64 / 76 / 68 | *Tectonic Hammer*, *Shard Spiral*, *Granite Guard*, *Mirage Feint* |
+| **Raijin Ikazuchi** | Raikou Tech | Winger (#11) | ⚡ Thunder | 74 / 78 / 50 / 88 | *Volt Strike*, *Static Dash*, *Shock Wall*, *Thunderbolt Barrage*, *Zigzag Comet*, *Gatling Volley* |
+| **Fubuki Shirayuki** | Tetsuzan Academy | Midfielder (#8) | ❄️ Frost | 70 / 72 / 74 / 66 | *Glacier Lance*, *Ice Slide*, *Frost Wall*, *Avalanche Snowball*, *Sword Storm*, *Zigzag Comet* |
+| **Aoi Minato** | Akebono FC | Playmaker (#10) | 💧 Water | 72 / 82 / 62 / 72 | *Tidal Burst*, *Current Glide*, *Undertow*, *Hydro Cannon*, *Imperial Dragon*, *Verdant Tempest* |
+
+Pick your fighter and your rival on the title screen (picking the rival's fighter swaps the two). The keepers belong to the left and right side, so they stay Kaito (you) and Genta (AI) whoever plays.
 
 ### Goalkeepers
 
@@ -78,6 +86,8 @@ The project features a **Triple-Pipeline Graphics Engine**, allowing instant swi
 * **Duel Selection**: `1`, `2`, `3`, `4` or direct mouse click on move cards.
 * **Skip Cutscenes**: `Space` or mouse click.
 * **Engine Switching**: `T` (cycles between 32-Bit Arcade ➔ 64-Bit 3D ➔ HD 3D ➔ 12-Bit Amiga).
+* **HD Lighting**: `G` (HD 3D only) switches between a night match and golden hour.
+* **Camera views**: `C` / `Shift+C` (3D modes only) cycles Broadcast, Cinematic, Follow, Over-the-shoulder, Orbit (drag, `Q`/`E`, wheel), First-person, Helmet HUD, Cockpit, Fixed angles, Isometric, Top-down, CCTV and Photo mode. Photo mode freezes the match: `WASD` to fly, `Q`/`E` to go down/up, drag to look, wheel to zoom, `Space` to save a PNG. In the views that sit behind or inside Haru, movement keys follow the camera.
 * **Debug Tools**:
   * `F`: FPS meter (in HD it also shows the auto-quality level, which drops a step whenever the game runs under 50 FPS for 2s).
   * `P`: Audit on-screen palette (12-bit mode).
@@ -133,6 +143,7 @@ FOOTBALL/
 ├── generate_32bit_game.py      # Generator script uniting 32-bit, 12-bit, and 64-bit engines
 ├── check_file.py               # Quick validation and inspection utility
 ├── assets/gk-*.json            # Baked Mixamo goalkeeper clips: catch, dive, sidestep, dropkick (limb directions per frame)
+├── trailer/                    # Remotion project for the trailer (src/Trailer.tsx). Needs public/gameplay.mp4 = a copy of blaze-demo.v2-720p.mp4; `npm i && npx remotion studio`, render with `npx remotion render Trailer out/blaze-trailer.mp4`
 ├── tools/bake-clip.mjs         # Bakes a Mixamo FBX into one of those jsons (see its header for usage)
 ├── tools/three2unity/          # Developer tool: snapshot a running Three.js page into a Unity project folder (see its README)
 └── README.md                   # Project documentation and specifications
@@ -143,7 +154,7 @@ FOOTBALL/
 ## 🗺️ Roadmap & Commercial Expansion
 
 * [ ] **Clash Minigame**: Split-screen button mash/timing clash on tied rolls.
-* [ ] **Roster Expansion**: Adding Thunder (⚡) and Frost (❄️) characters (Aoi, Raijin, Fubuki).
+* [x] **Roster Expansion**: Thunder (⚡), Water (💧) and Frost (❄️) fighters (Raijin, Aoi, Fubuki) with a title-screen fighter select.
 * [ ] **Roguelite Tournament Mode**: Single-player cup with artifact drafts and skill unlocks (*Balatro* x *Soccer*).
 * [ ] **WebRTC Multiplayer**: 1-click room codes for instant peer-to-peer friend matches via WebRTC (PeerJS).
 * [ ] **Gamepad Support**: Standard Gamepad API integration for Xbox, PlayStation, and 8BitDo controllers.
