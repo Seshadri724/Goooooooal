@@ -483,9 +483,63 @@
     }
 
     .cmd-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 8px
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-height: 34vh;
+      overflow-y: auto
+    }
+
+    .cmd-list .mv {
+      flex: 1 1 170px;
+      max-width: 260px;
+      padding: 7px 10px;
+      gap: 4px 8px
+    }
+
+    .cmd-head .x {
+      margin-left: auto;
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--mute);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font: 600 12px/1.2 var(--mono);
+      cursor: pointer
+    }
+
+    .cmd-info {
+      min-height: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px 10px;
+      font: 500 12px/1.4 var(--mono);
+      color: var(--mute)
+    }
+
+    .cmd-info b {
+      color: var(--ink);
+      font-family: var(--body)
+    }
+
+    .cmd-more {
+      background: transparent;
+      border: 1px dashed var(--line);
+      color: var(--mute);
+      border-radius: 9px;
+      padding: 7px 10px;
+      font: 600 12px/1.2 var(--mono);
+      cursor: pointer;
+      flex: 0 0 auto
+    }
+
+    .cmd-locked {
+      display: contents
+    }
+
+    .cmd-locked[hidden] {
+      display: none
     }
 
     .mv {
@@ -969,6 +1023,7 @@
       <div class="cmd" id="cmd" hidden role="dialog" aria-labelledby="cmdTitle">
         <div class="cmd-head"><strong id="cmdTitle"></strong><span id="cmdSub"></span></div>
         <div class="cmd-list" id="cmdList"></div>
+        <div class="cmd-info" id="cmdInfo" aria-live="polite"></div>
       </div>
       <div class="touchpad" id="touchpad">
         <div class="stick" id="stick" aria-label="Movement stick">
@@ -1089,6 +1144,7 @@ Keeper duel   shot × distance
       const KIND = { shot: 'Shot', dribble: 'Dribble', block: 'Block', catch: 'Save', celebrate: 'Goal' };
       const BASIC = {
         shot: { name: 'Power Shot', kind: 'shot', elem: 'none', power: 18, tp: 0 },
+        chip: { name: 'Chip Shot', kind: 'shot', elem: 'none', power: 10, tp: 0, chip: true, note: 'Lobs over the defender · less power' }, // free; can't be blocked
         dribble: { name: 'Push Through', kind: 'dribble', elem: 'none', power: 15, tp: 0 },
         block: { name: 'Tackle', kind: 'block', elem: 'none', power: 15, tp: 0 },
         catch: { name: 'Catch', kind: 'catch', elem: 'none', power: 34, tp: 0 }, // catch 60 × 0.5 + 34 = the old fixed keeper baseline
@@ -1216,7 +1272,7 @@ Keeper duel   shot × distance
       g12.imageSmoothingEnabled = false;
 
       const titleScreen = $('titleScreen'), overScreen = $('overScreen');
-      const cmd = $('cmd'), cmdTitle = $('cmdTitle'), cmdSub = $('cmdSub'), cmdList = $('cmdList');
+      const cmd = $('cmd'), cmdTitle = $('cmdTitle'), cmdSub = $('cmdSub'), cmdList = $('cmdList'), cmdInfo = $('cmdInfo');
 
       // ---------- state ----------
       function mkPlayer(ch, team, human) { return { ch, team, human, x: 0, y: 0, vx: 0, vy: 0, fx: team === 0 ? 1 : -1, fy: 0, stun: 0, tp: 60, dash: 0, dashCd: 0, ph: 0, idle: 0 }; } // ph: stride phase · idle: seconds standing still
@@ -1612,6 +1668,7 @@ Keeper duel   shot × distance
         const s = ball.shot;
         if (s) {
           const u = shotProg(s), amp = s.move.tp > 0 ? (FLAT[s.style] ?? 34) : 18;
+          if (s.pose === 'chip') return h + Math.sin(u * Math.PI) * 48; // chipped: a high lob that drops onto the goal
           h += s.spinKind === 'top' ? Math.sin(clamp(u * 1.3, 0, 1) * Math.PI) * amp * 0.75
             : s.spinKind === 'back' ? Math.sin(Math.pow(u, 0.7) * Math.PI * 0.85) * amp * 1.2
               : Math.sin(u * Math.PI * 0.8) * amp;
@@ -1719,36 +1776,61 @@ Keeper duel   shot × distance
         for (const d of decals) d.t += dt; decals = decals.filter(d => d.t < d.life);
       }
 
+      // Move menu (shots, duels, blocks, saves). Kept small so the pitch stays visible: each card is key · name · cost, and one
+      // detail line describes the highlighted move. Only affordable moves get number keys (free first, then strongest);
+      // moves you can't pay for fold into a "locked" toggle. The last move you picked in this kind of menu starts highlighted.
+      const lastPick = {}; let menuMemo = null;
       function askMenu(title, sub, opts, p, cancel) {
         return new Promise(res => {
-          cmdTitle.textContent = title; cmdSub.textContent = sub; cmdList.innerHTML = '';
-          const btns = [];
-          opts.forEach((m, i) => {
-            const b = document.createElement('button'); b.type = 'button'; b.className = 'mv' + (m.tp ? ' sp' : ''); b.disabled = m.tp > p.tp + 1e-6;
+          cmdTitle.textContent = title; cmdSub.textContent = sub; cmdList.innerHTML = ''; cmdInfo.innerHTML = '';
+          cmd.querySelector('.cmd-head .x')?.remove();
+          const can = m => m.tp <= p.tp + 1e-6, memo = `${p.ch.id}:${opts[0].kind}`;
+          const ready = opts.filter(can).sort((x, y) => (x.tp > 0) - (y.tp > 0) || (x.tp > 0 ? y.power - x.power : 0));
+          const locked = opts.filter(m => !can(m));
+          const info = m => {
+            cmdInfo.innerHTML = `<b>${m.name}</b><span class="chip ${m.elem}">${ELEM[m.elem].name}</span><span>PWR ${m.power}</span><span>${hintFor(m, p.ch)}</span>` +
+              (m.note ? `<span>${m.note}</span>` : '') + (can(m) ? '' : `<span style="color:var(--tension)">needs ${m.tp} TP (you have ${Math.floor(p.tp)})</span>`);
+          };
+          const card = (m, key) => {
+            const b = document.createElement('button'); b.type = 'button'; b.className = 'mv' + (m.tp ? ' sp' : '');
+            if (!can(m)) { b.setAttribute('aria-disabled', 'true'); b.style.opacity = .45; } // still focusable/hoverable so its cost reads
             b.style.setProperty('--ec', ELEM[m.elem].c);
-            b.innerHTML = `<span class="k">${i + 1}</span><span class="nm">${m.name}</span><span class="tp">${m.tp ? m.tp + ' TP' : 'Free'}</span>` +
-              `<span class="pw" aria-hidden="true"><i style="--p:${Math.min(100, Math.round(m.power / 80 * 100))}%"></i></span>` +
-              `<span class="meta"><span class="chip ${m.elem}">${ELEM[m.elem].name}</span><span>PWR ${m.power}</span><span>${hintFor(m, p.ch)}</span>${m.note ? `<span>${m.note}</span>` : ''}</span>`;
-            b.addEventListener('click', () => closeMenu(m));
-            cmdList.appendChild(b); btns.push(b);
-          });
-          if (cancel) {
-            const b = document.createElement('button'); b.type = 'button'; b.className = 'mv ghost';
-            b.innerHTML = `<span class="k">Esc</span><span class="nm">${cancel}</span>`;
-            b.addEventListener('click', () => closeMenu(null)); cmdList.appendChild(b);
+            b.innerHTML = `<span class="k">${key ?? '–'}</span><span class="nm">${m.name}</span><span class="tp">${m.tp ? m.tp + ' TP' : 'Free'}</span>` +
+              `<span class="pw" aria-hidden="true"><i style="--p:${Math.min(100, Math.round(m.power / 80 * 100))}%"></i></span>`;
+            b.addEventListener('click', () => { if (!can(m)) return info(m); closeMenu(m); });
+            for (const ev of ['focus', 'mouseenter']) b.addEventListener(ev, () => info(m));
+            return b;
+          };
+          const btns = ready.map((m, i) => card(m, i < 9 ? i + 1 : i === 9 ? 0 : null));
+          const pin = ready.findIndex(m => m.name === lastPick[memo]), SHOW = 6; // free basics + the 4 strongest, and your last pick
+          const extra = btns.filter((b, i) => i >= SHOW && i !== pin);
+          btns.forEach(b => { if (!extra.includes(b)) cmdList.appendChild(b); });
+          if (extra.length || locked.length) { // folded until asked for; their number keys still work, and hover shows what they need
+            const more = document.createElement('button'); more.type = 'button'; more.className = 'cmd-more';
+            const box = document.createElement('div'); box.className = 'cmd-locked'; box.hidden = true;
+            extra.forEach(b => box.appendChild(b)); locked.forEach(m => box.appendChild(card(m, null)));
+            const n = extra.length + locked.length, label = () => box.hidden ? `+ ${n} more` : '− fewer';
+            more.textContent = label(); more.addEventListener('click', () => { box.hidden = !box.hidden; more.textContent = label(); });
+            cmdList.appendChild(more); cmdList.appendChild(box);
           }
-          menuOpts = opts; menuP = p; menuCancel = !!cancel; menuResolve = res; cmd.hidden = false;
-          fx(g => { g.from(cmd, { y: 24, autoAlpha: 0, duration: 0.25, ease: 'power2.out', clearProps: CLR }); g.from(btns, { x: -28, autoAlpha: 0, stagger: 0.07, duration: 0.3, ease: 'power3.out', clearProps: CLR }); g.from(cmd.querySelectorAll('.pw i'), { scaleX: 0, duration: 0.7, delay: 0.2, stagger: 0.07, ease: 'power3.out', clearProps: 'transform' }); });
+          if (cancel) {
+            const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = `Esc · ${cancel}`;
+            x.addEventListener('click', () => closeMenu(null)); cmd.querySelector('.cmd-head').appendChild(x);
+          }
+          menuOpts = ready; menuMemo = memo; menuP = p; menuCancel = !!cancel; menuResolve = res; cmd.hidden = false;
+          // focus first, and fade with opacity only: autoAlpha's visibility:hidden would drop the keyboard focus
+          const first = btns[Math.max(0, ready.findIndex(m => m.name === lastPick[memo]))] || cmdList.querySelector('button');
+          if (first) { first.focus({ preventScroll: true }); info(ready[btns.indexOf(first)] || opts[0]); }
+          fx(g => { g.from(cmd, { y: 14, opacity: 0, duration: 0.16, ease: 'power2.out', clearProps: CLR }); g.from(btns.filter(b => !extra.includes(b)), { y: 6, opacity: 0, stagger: 0.02, duration: 0.16, ease: 'power2.out', clearProps: CLR }); });
           // On narrow screens the menu sits below the pitch; bring it into view or the paused game looks stuck.
           cmd.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
-          const first = btns.find(b => !b.disabled) || cmdList.querySelector('button');
-          if (first) first.focus({ preventScroll: true });
           sfx('blip');
         });
       }
       function closeMenu(m) {
         if (!menuResolve) return;
         const r = menuResolve; menuResolve = null; cmd.hidden = true; cmdList.innerHTML = '';
+        if (m && menuMemo) lastPick[menuMemo] = m.name; // clicked or number key: highlighted first next time
         if (m) sfx('blip');
         stage.focus({ preventScroll: true });
         r(m);
@@ -1881,7 +1963,7 @@ Keeper duel   shot × distance
       const UNBLOCKABLE = ['laser', 'bolt', 'bullet', 'blades', 'zigzag']; // a zig-zag weaves past any defender                    // too fast for the defender to step in
       async function shoot(p) {
         const id = matchId; mode = 'freeze';
-        const opts = [BASIC.shot, ...p.ch.moves.filter(m => m.kind === 'shot')];
+        const opts = [BASIC.shot, BASIC.chip, ...p.ch.moves.filter(m => m.kind === 'shot')];
         let m;
         if (p.human) {
           ov.aim = { p };
@@ -1890,6 +1972,7 @@ Keeper duel   shot × distance
         } else {
           const dist = Math.hypot(p.x - (p.team === 0 ? F.x1 : F.x0), p.y - CY);
           m = aiPick(p, opts, 'shot', { dist });
+          if (m === BASIC.shot && inLane(p)) m = BASIC.chip; // the AI chips a plain shot over a defender in its way
         }
         if (id !== matchId) return;
         if (!m) { mode = 'play'; return; }
@@ -1898,7 +1981,7 @@ Keeper duel   shot × distance
         const blank = Math.hypot((p.team === 0 ? F.x1 : F.x0) - p.x, CY - p.y) < 150;
         if (m.tp > 0 && !blank) await playCut(p, m);
         if (id !== matchId) return;
-        await windUp(p, m, blank);
+        const pose = await windUp(p, m, blank);
         if (id !== matchId) return;
 
         const targetX = p.team === 0 ? F.x1 : F.x0;
@@ -1913,7 +1996,7 @@ Keeper duel   shot × distance
         ball.owner = null;
         ball.vx = (dx / dist) * speed;
         ball.vy = (dy / dist) * speed;
-        ball.shot = { p, move: m, elem: m.elem, style: m.style, power: pwr, targetY, cracked: false, distK, x0: ball.x, y0: ball.y, long: dist > 400, spinKind, curve, zig: m.style === 'zigzag' ? 34 : 0, c0: clock };
+        ball.shot = { p, move: m, elem: m.elem, style: m.style, power: pwr, targetY, cracked: false, distK, x0: ball.x, y0: ball.y, long: dist > 400, spinKind, curve, zig: m.style === 'zigzag' ? 34 : 0, c0: clock, pose };
         ball.bounces = 0;
         ball.noPick = { p, t: 0.6 };
         sfx('kick'); if (choreo(m).sound) sfx('sizzle'); if (choreo(m).fire) sfx(choreo(m).fire); cheer(m.tp > 0 ? 0.7 : 0.4);
@@ -1930,7 +2013,8 @@ Keeper duel   shot × distance
         if (!UNBLOCKABLE.includes(m.style) && def.stun <= 0 && Math.abs(def.y - ball.y) < 65) { // lasers, lightning and bullets are too fast to intercept
           const fwd = p.team === 0 ? 1 : -1;
           const inPath = (def.x - p.x) * fwd > 40 && (targetX - def.x) * fwd > 60;
-          if (inPath) {
+          if (inPath && pose === 'chip') setTimeout(() => addText(def.x, def.y - 34, 'OVER HIM!', '#ffe14d'), 200); // the lob sails over the block
+          else if (inPath) {
             setTimeout(() => tryShotBlock(def), 120);
           }
         }
@@ -1942,8 +2026,21 @@ Keeper duel   shot × distance
       // the wind-up ends and shoot() launches it, so contact, hit-stop and sound all land on the same frame.
       const STRIKE = 90;
       const windK = (o, now) => clamp(((now - o.t0) / (o.dur - (o.strike || 0)) - 0.5) / 0.5, 0, 1); // 0 during the plant, 0→1 over the draw-back
+      // Which authored shooting pose (assets/haru/poses.json, posed in Blender: assets/haru/src/poses_haru.py) the strike lands in:
+      // the Chip Shot chips · airborne signature wind-ups volley · point-blank finishes · other specials are power shots ·
+      // a plain Power Shot is struck with the instep.
+      function kickPose(p, m, snap) {
+        const C = choreo(m);
+        if (m.chip) return 'chip';
+        if (C.windup === 'jump' || C.windup === 'hover') return 'volley';
+        if (snap) return 'finish';
+        return m.tp > 0 ? 'power' : 'instep';
+      }
+      // The defender is standing in the shooting lane (what a chip is for).
+      function inLane(p) { const def = other(p), ahead = (def.x - p.x) * (p.team === 0 ? 1 : -1); return ahead > 30 && ahead < 220 && Math.abs(def.y - p.y) < 50; }
       async function windUp(p, m, snap) {
         const E = ELEM[m.elem], C = choreo(m), bx = ball.x, by = ball.y, dur = C.windup ? 520 : 300; // signature wind-ups run longer
+        const pose = kickPose(p, m, snap);
         sfx('plant'); shake(C.windup === 'stamp' ? 0.25 : 0.06);
         dust(p.x - p.fx * 4, p.y + 8, C.windup === 'stamp' ? 22 : 10);
         if (C.windup === 'stamp') decal('crack', p.x - p.fx * 6, p.y, bx, by, 0.2); // the fissure runs from the stamp to the ball
@@ -1961,7 +2058,8 @@ Keeper duel   shot × distance
             parts.push({ x: bx + Math.cos(a) * 22, y: by + Math.sin(a) * 22, vx: -Math.sin(a) * 160, vy: Math.cos(a) * 160, t: 0, life: 0.35, size: 2, color: ELEM.gale.g, kind: 'wisp', rot: 0, drag: 1, rise: 0 });
           }
         }, dur / 2);
-        await timed('windup', { p, m, C, snap, strike: STRIKE }, dur + STRIKE);
+        await timed('windup', { p, m, C, snap, strike: STRIKE, pose }, dur + STRIKE);
+        return pose;
       }
       function drawWindup32(o, now, x, y, hx, hy) { // (x, y) = the ball, (hx, hy) = the kicker's head, in 960x540 overlay space
         const k = windK(o, now), E = ELEM[o.m.elem];
@@ -3880,8 +3978,14 @@ Keeper duel   shot × distance
         const HB = ['root', 'hips', 'spine', 'chest', 'neck', 'head', 'shoulderL', 'upper_armL', 'forearmL', 'handL', 'shoulderR', 'upper_armR', 'forearmR', 'handR', 'thighL', 'shinL', 'footL', 'thighR', 'shinR', 'footR'];
         const HP = { hips: 'root', spine: 'hips', chest: 'spine', neck: 'chest', head: 'neck', shoulderL: 'chest', upper_armL: 'shoulderL', forearmL: 'upper_armL', handL: 'forearmL', shoulderR: 'chest', upper_armR: 'shoulderR', forearmR: 'upper_armR', handR: 'forearmR', thighL: 'hips', shinL: 'thighL', footL: 'shinL', thighR: 'hips', shinR: 'thighR', footR: 'shinR' };
         let haruSrc = null;
+        // Everyone wears this body (torso, arms, hands, legs, boots), recoloured to their kit (C.kit); only Haru keeps the model's
+        // head. The others keep their own primitive head, set on the model's neck every frame (syncHaru).
+        const GLB_HEAD = /^(Head|Hair|HairCap|Eyes|Face|Ears)/;
+        const KIT_OF = { Haru_Shirt: 'jersey', Haru_KitRed: 'trim', Haru_KitRedDark: 'trimD', Haru_ShoeRed: 'trim', Haru_Skin: 'skin', Haru_SkinShade: 'skinD' };
         const dressHaru = C => {
-          if (!haruSrc || C.glb || C.chId !== 'haru') return;
+          if (!haruSrc || C.glb || !C.kit) return;
+          const full = C.chId === 'haru', kit = C.kit;
+          const col = Object.assign({ trimD: new THREE.Color(kit.trim).multiplyScalar(0.75), skinD: new THREE.Color(kit.skin).multiplyScalar(0.88) }, kit);
           const g = PP.clone(haruSrc.scene), bones = {}, morphs = [], morphInk = [], rest = {}, tgt = {}, Q = () => new THREE.Quaternion();
           const meshes = [];
           g.traverse(o => { // GLTFLoader strips the dots from node names: upper_arm.L -> upper_armL
@@ -3893,6 +3997,7 @@ Keeper duel   shot × distance
           // Haru's model is scaled 40x from metres into pitch units, so 0.014m gives an outline close to the primitive cast.
           const ink = mkInk(true, 0.014); C.fx.ink.push(ink);
           for (const o of meshes) {
+            if (!full && (GLB_HEAD.test(o.name) || GLB_HEAD.test(o.parent.name))) { o.visible = false; continue; } // their own head instead
             const convert = m => {
               if (!m) return m;
               const skin = /skin/i.test(m.name || '');
@@ -3904,6 +4009,9 @@ Keeper duel   shot × distance
                 transparent: !!m.transparent, opacity: m.opacity ?? 1, side: m.side ?? THREE.FrontSide,
                 depthWrite: m.depthWrite ?? true, depthTest: m.depthTest ?? true,
               });
+              if (!full) { // the kit colours: shirt, trim (collar, cuffs, shorts, sock bands, boots), skin; keepers' hands are gloves
+                if (kit.gloves && /^Hand/.test(o.name)) toonMat.color.set('#ffffff'); else if (KIT_OF[m.name]) toonMat.color.set(col[KIT_OF[m.name]]);
+              }
               // Preserve the night readability the Blender material had, while allowing HD rim light and elemental aura.
               if (toonMat.emissiveIntensity === 0) toonMat.emissiveIntensity = 1;
               if (toonMat.emissive && toonMat.emissive.r + toonMat.emissive.g + toonMat.emissive.b < 0.01)
@@ -3933,8 +4041,13 @@ Keeper duel   shot × distance
           }
           const par = bones.root.parent.getWorldQuaternion(Q());
           g.scale.setScalar(HARU_S); C.root.add(g);
-          for (const m of C.prim) m.visible = false;
-          C.glb = { bones, morphs, morphInk, rest, tgt, par, parInv: par.clone().invert(), p0: bones.root.position.clone(), v: new THREE.Vector3(), q: Object.fromEntries(['B', 'H', 'AL', 'EL', 'AR', 'ER', 'LL', 'KL', 'FL', 'LR', 'KR', 'FR'].map(k => [k, Q()])) };
+          const own = new Set(); if (!full) C.head.traverse(o => own.add(o));
+          for (const m of C.prim) if (!own.has(m)) m.visible = false;
+          if (!full) { // where the primitive head sits relative to the model's neck at rest (root space; body/tilt are identity at rest)
+            g.updateMatrixWorld(true); const n = C.root.worldToLocal(bones.head.getWorldPosition(new THREE.Vector3()));
+            C.headOff = new THREE.Vector3(0, C.body.position.y + C.head.position.y, 0).sub(n);
+          }
+          C.glb = { bones, morphs, morphInk, rest, tgt, par, parInv: par.clone().invert(), p0: bones.root.position.clone(), v: new THREE.Vector3(), hv: new THREE.Vector3(), q: Object.fromEntries(['B', 'H', 'AL', 'EL', 'AR', 'ER', 'LL', 'KL', 'FL', 'LR', 'KR', 'FR'].map(k => [k, Q()])) };
         };
         const syncHaru = C => { // each bone's world rotation = (the game joint's rotation, in the rig's frame) x (the bone's rest rotation)
           const G = C.glb, q = G.q, T = C.tilt.quaternion;
@@ -3950,11 +4063,15 @@ Keeper duel   shot × distance
             G.bones[n].quaternion.copy(HP[n] ? G.tgt[HP[n]] : G.par).invert().multiply(t);
           }
           G.bones.root.position.copy(G.p0).add(G.v.copy(C.tilt.position).divideScalar(HARU_S).applyQuaternion(G.parInv)); // keeper crouches / jumps
-          C.face.sweat.visible = false; // styleChars re-shows the primitive head's sweat drop every frame; the Surprised shape key covers "beaten"
+          if (C.headOff) { // own head on the model's neck: neck position now + the rest offset turned with the upper body, in body space
+            const v = G.bones.head.getWorldPosition(G.v); C.root.worldToLocal(v).add(G.hv.copy(C.headOff).applyQuaternion(q.B));
+            C.body.updateWorldMatrix(true, false); C.head.position.copy(C.body.worldToLocal(C.root.localToWorld(v)));
+          } else C.face.sweat.visible = false; // styleChars re-shows the primitive head's sweat drop every frame; the Surprised shape key covers "beaten"
           const f = C.fc || [0, 0, 0]; // fierce / shock / smug (styleChars) -> the shape keys built in Blender
           for (const m of G.morphs) {
             const d = m.morphTargetDictionary, w = m.morphTargetInfluences;
-            if ('Angry' in d) { w[d.Angry] = f[0]; w[d.Surprised] = f[1]; w[d.Happy] = f[2]; }
+            const pw = C.poseW || 0, pf = C.poseFace || f, g = i => lerp(f[i], pf[i], pw); // a kick pose brings its own face
+            if ('Angry' in d) { w[d.Angry] = g(0); w[d.Surprised] = g(1); w[d.Happy] = g(2); }
           }
           for (const [src, line] of G.morphInk) if (src.morphTargetInfluences && line.morphTargetInfluences)
             line.morphTargetInfluences.splice(0, line.morphTargetInfluences.length, ...src.morphTargetInfluences);
@@ -3962,13 +4079,17 @@ Keeper duel   shot × distance
         const prim = C => { C.prim = []; C.root.traverse(o => { if (o.isMesh) C.prim.push(o); }); C.stars.traverse(o => { const i = C.prim.indexOf(o); if (i >= 0) C.prim.splice(i, 1); }); };
         const fighter = ch => {
           const C = player(ch, HAIR3[ch.spiky][0], Object.assign({ num: ch.num }, HAIR3[ch.spiky][1]));
-          prim(C); C.chId = ch.id; dressHaru(C); return C;
+          prim(C); C.chId = ch.id; C.kit = { jersey: ch.jersey, trim: ch.trim, skin: ch.skin }; dressHaru(C); return C;
         };
         const rigs = new Map([[haru, fighter(haru.ch)], [jin, fighter(jin.ch)]]);
         new PP.GLTFLoader().load('assets/haru/haru.glb', gltf => { haruSrc = gltf; for (const C of rigs.values()) dressHaru(C); },
           undefined, e => console.warn('[haru] model unavailable, using the primitive character:', e));
-        rigs.set(keepers[0], player(GK_A, 4, { shorts: '#1b1f2a', gloves: true, spikeLen: 9, spread: 0.7, spikeX: -4, spikeY: 6, spikeTilt: 1.1 }));
-        rigs.set(keepers[1], player(GK_B, 0, { shorts: '#1b1f2a', gloves: true }));
+        const keeper = (ch, spikes, o) => { // keepers wear the body too: dark shorts, gloves
+          const C = player(ch, spikes, Object.assign({ shorts: '#1b1f2a', gloves: true }, o)); prim(C);
+          C.kit = { jersey: ch.jersey, trim: '#1b1f2a', skin: ch.skin, gloves: true }; dressHaru(C); return C;
+        };
+        rigs.set(keepers[0], keeper(GK_A, 4, { spikeLen: 9, spread: 0.7, spikeX: -4, spikeY: 6, spikeTilt: 1.1 }));
+        rigs.set(keepers[1], keeper(GK_B, 0, {}));
         const addRing = C => { add(C.root, new THREE.RingGeometry(15, 18, 20), new THREE.MeshBasicMaterial({ color: '#ffe14d' }), 0, 0.6, 0, false).rotation.x = -Math.PI / 2; };
         addRing(rigs.get(haru));
 
@@ -4390,6 +4511,33 @@ Keeper duel   shot × distance
       //   players: lean into acceleration and back when braking (feet planted out front), bank into turns, pivot-shuffle
       //     in place, counter-twist the torso against the stride, dribble touches, shot follow-through, idle sway, blinking
       // C.touch (0..1) is the dribble foot-strike, read back by the ball placement in draw64.
+      // Authored shooting poses (assets/haru/poses.json): per pose, each joint's rotation from rest in the rig's axes, plus a hip
+      // offset (metres) and a face. They drive the shared joint rig, so every fighter strikes in them and Haru's GLB follows.
+      let KICK_POSES = null;
+      fetch('assets/haru/poses.json').then(r => r.ok ? r.json() : null).then(j => { KICK_POSES = j; }).catch(() => {});
+      const KICK_FACE = [0, 0, 0];
+      function kickPose3D(R, p, C, now) {
+        const o = ov.windup && ov.windup.p === p ? ov.windup : null, s = !o && ball.shot && ball.shot.p === p ? ball.shot : null;
+        let P = null, w = 0;
+        if (o && o.pose) { P = KICK_POSES && KICK_POSES[o.pose]; const sw = clamp(((now - o.t0) - (o.dur - o.strike)) / o.strike, 0, 1); w = sw * sw; }
+        else if (s && s.pose) { P = KICK_POSES && KICK_POSES[s.pose]; const e = clock - (s.c0 ?? clock); w = e < 0.15 ? 1 : 1 - easeOut(clamp((e - 0.15) / 0.4, 0, 1)); }
+        C.poseW = P ? w : 0; C.poseFace = P ? P.face : KICK_FACE;
+        if (C.posed) { // the base pose only rewrites z on these joints: clear what the last posed frame left on the other axes
+          for (const j of [C.legL, C.legR, C.kneeL, C.kneeR, C.armL, C.armR, C.elL, C.elR]) j.rotation.x = j.rotation.y = 0;
+          C.ankleL.rotation.set(0, 0, 0); C.ankleR.rotation.set(0, 0, 0); C.head.rotation.x = C.head.rotation.z = 0; C.posed = false;
+        }
+        if (!P || w <= 0) return;
+        C.posed = true;
+        const T = R.THREE, q = P.q || (P.q = Object.fromEntries(Object.entries(P.bones).map(([k, v]) => [k, new T.Quaternion(...v)])));
+        const t = R.kq || (R.kq = new T.Quaternion()), id = R.kqI || (R.kqI = new T.Quaternion());
+        const put = (joint, parent, child) => joint.quaternion.slerp(t.copy(parent || id).invert().multiply(child), w); // local = parent⁻¹ · child
+        put(C.tilt, null, q.hips); put(C.body, q.hips, q.chest); put(C.head, q.chest, q.head);
+        put(C.armL, q.chest, q.upper_armL); put(C.elL, q.upper_armL, q.forearmL); put(C.armR, q.chest, q.upper_armR); put(C.elR, q.upper_armR, q.forearmR);
+        put(C.legL, q.hips, q.thighL); put(C.kneeL, q.thighL, q.shinL); put(C.ankleL, q.shinL, q.footL);
+        put(C.legR, q.hips, q.thighR); put(C.kneeR, q.thighR, q.shinR); put(C.ankleR, q.shinR, q.footR);
+        C.tilt.position.y += P.hip[1] * 40 * w; // metres -> pitch units (HARU_S): the crouch into a strike, or the volley's leap
+      }
+
       function finishRigs(R, dt, now) {
         for (const [ent, C] of R.rigs) {
           const isP = players.includes(ent), G = C.G, r = G ? G.r : 0, mine = ov.cut && ov.cut.p === ent;
@@ -4440,6 +4588,7 @@ Keeper duel   shot × distance
             C.elL.rotation.z = lerp(C.elL.rotation.z, 0.48, brace);
             C.elR.rotation.z = lerp(C.elR.rotation.z, -0.48, brace);
           }
+          if (isP && !mine) kickPose3D(R, ent, C, now);
           if (C.gk) gkPose(R, C, dt);
           // Boot fire (Crimson Meteor): builds through the charge / draw-back, blazes on the strike, dies over the follow-through.
           let f = 0; const sh = ball.shot;
@@ -5421,12 +5570,12 @@ Keeper duel   shot × distance
         if (c === 'KeyP' && engineMode === '12bit') { e.preventDefault(); checkPalette(); return; }
         if (c === 'KeyM' && engineMode === '12bit') { e.preventDefault(); mockMode = !mockMode; $('mockBtn').textContent = mockMode ? 'Mock: ON [M]' : 'Mock: 320x180 [M]'; return; }
         if (menuResolve) {
-          const mm = /^(?:Digit|Numpad)([1-9])$/.exec(c);
-          if (mm) { const o = menuOpts[+mm[1] - 1]; if (o && o.tp <= menuP.tp + 1e-6) { e.preventDefault(); closeMenu(o); } return; }
+          const mm = /^(?:Digit|Numpad)([0-9])$/.exec(c); // 0 = the tenth move
+          if (mm) { const o = menuOpts[(+mm[1] || 10) - 1]; if (o && o.tp <= menuP.tp + 1e-6) { e.preventDefault(); closeMenu(o); } return; }
           if (c === 'Escape' && menuCancel) { e.preventDefault(); closeMenu(null); return; }
           if (c.startsWith('Arrow')) {
             e.preventDefault();
-            const bs = [...cmdList.querySelectorAll('button:not(:disabled)')]; if (!bs.length) return;
+            const bs = [...cmdList.querySelectorAll('button:not(:disabled)')].filter(b => b.offsetParent); if (!bs.length) return; // visible cards only
             let i = bs.indexOf(document.activeElement);
             i = (c === 'ArrowUp' || c === 'ArrowLeft') ? (i <= 0 ? bs.length - 1 : i - 1) : (i + 1) % bs.length;
             bs[i].focus(); return;

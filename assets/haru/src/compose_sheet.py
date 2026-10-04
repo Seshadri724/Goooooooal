@@ -88,3 +88,42 @@ for r in rows:
         x += s.width + PAD
     y += rh + PAD
 sheet.save(os.path.join(R, "sheet.png")); print("sheet", W, "x", H)
+
+# ---- shooting pose sheet (poses_haru.py): per pose a column of hero shot, wireframe front/side/back, three close-ups
+POSES = [("power", "POWER SHOT", [("contact", "FOOT CONTACT"), ("ext", "LEG EXTENSION"), ("twist", "BODY TWIST")]),
+         ("instep", "INSTEP KICK", [("contact", "INSTEP CONTACT"), ("angle", "FOOT ANGLE"), ("follow", "FOLLOW THROUGH")]),
+         ("chip", "CHIP SHOT", [("toe", "TOE CONTACT"), ("lift", "LIFT MOTION"), ("balance", "BODY BALANCE")]),
+         ("volley", "VOLLEY SHOT", [("air", "AIR KICK"), ("angle", "FOOT ANGLE"), ("aerial", "AERIAL BALANCE")]),
+         ("finish", "FINISHING SHOT", [("contact", "FOOT CONTACT"), ("follow", "FOLLOW THROUGH"), ("lean", "BODY LEAN")])]
+
+def pose_sheet():
+    if not os.path.exists(os.path.join(R, "pose_power_hero.png")): return
+    CW, HERO, SW, SH, DH = 340, 340, 106, 150, 106
+    col_h = HDR + HERO + PAD + SH + LBL + PAD + DH + LBL + PAD
+    W = PAD + len(POSES) * (CW + PAD); TOP = 64
+    sheet = Image.new("RGB", (W, TOP + col_h + PAD), BG); d = ImageDraw.Draw(sheet)
+    d.rounded_rectangle((PAD, 10, PAD + 420, 54), 10, fill=(196, 34, 48)); d.text((PAD + 16, 32), "FOOTBALL POSES - SHOOTING", font=F, fill=INK, anchor="lm")
+    def cell(name, x, y, w, h, label=None, back=True):
+        if back: d.rectangle((x, y, x + w, y + h + (LBL if label else 0)), fill=BG)
+        p = os.path.join(R, name + ".png")
+        if os.path.exists(p):
+            im = Image.open(p).convert("RGBA")
+            src = fit(im, w - 4, h - 4) if "_wire_" in name else fit(im, w, h, trim=False)   # wire: trimmed to the figure; shots keep their framing
+            sheet.paste(src, (x + (w - src.width) // 2, y + (h - src.height) // 2), src)
+        if label:
+            ft = FS if FS.getlength(label) <= w else ImageFont.truetype("arial.ttf", max(9, int(15 * w / FS.getlength(label))))   # shrink long labels to the cell
+            d.text((x + w // 2, y + h + LBL // 2), label, font=ft, fill=INK, anchor="mm")
+    for k, (pid, title, det) in enumerate(POSES):
+        x = PAD + k * (CW + PAD); y = TOP
+        d.rectangle((x, y, x + CW, y + col_h), fill=PANEL); d.rectangle((x, y, x + CW, y + HDR), fill=(120, 26, 36))
+        d.text((x + PAD, y + 7), f"{k + 1}.  {title}", font=F, fill=INK)
+        cell(f"pose_{pid}_hero", x, y + HDR, CW, HERO, back=False)
+        y2 = y + HDR + HERO + PAD
+        for j, v in enumerate(("front", "side", "back")):
+            cell(f"pose_{pid}_wire_{v}", x + 4 + j * (SW + 6), y2, SW, SH, v.upper())
+        y3 = y2 + SH + LBL + PAD
+        for j, (nm, lbl) in enumerate(det):
+            cell(f"pose_{pid}_{nm}", x + 4 + j * (SW + 6), y3, SW, DH, lbl)
+    sheet.save(os.path.join(R, "poses.png")); print("poses", sheet.size)
+
+pose_sheet()

@@ -10,7 +10,7 @@ from mathutils import Vector, Matrix
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUTDIR = os.path.join(os.path.dirname(HERE), "renders")
 LOG = os.path.join(HERE, "render_haru.log")
-log = open(LOG, "w")
+log = None   # opened by __main__; poses_haru.py imports these helpers and sets its own
 def say(*a): print(*a, file=log, flush=True)
 
 # name, azimuth (0 = in front, he faces +X), elevation, distance, look-at height, lens
@@ -253,7 +253,7 @@ def dump_uv(path):
         out[n] = faces
     json.dump(out, open(path, "w"))
 
-try:
+def main():
     os.makedirs(OUTDIR, exist_ok=True)
     cam = studio(); sc = bpy.context.scene
     arm = bpy.data.objects.get("HaruRig")
@@ -286,7 +286,9 @@ try:
         sc.render.resolution_x = sc.render.resolution_y = 800
         sc.render.filepath = os.path.join(OUTDIR, name + ".png"); bpy.ops.render.render(write_still=True); say("rendered", name)
     set_wire(False); dump_uv(os.path.join(OUTDIR, "uv.json")); say("uv.json written")
-    say("DONE")
-except Exception:
-    say(traceback.format_exc()); say("FAILED")
-log.close()
+
+if __name__ == "__main__":
+    log = open(LOG, "w")
+    try: main(); say("DONE")
+    except Exception: say(traceback.format_exc()); say("FAILED")
+    log.close()
