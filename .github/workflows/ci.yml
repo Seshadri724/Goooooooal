@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [v5]
+    branches: [main]
   pull_request:
 
 permissions:
@@ -45,12 +45,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Scan image (fail on HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: blaze-duel-server:ci
-          severity: HIGH,CRITICAL
-          exit-code: "1"
-          ignore-unfixed: true
+        run: >
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.58.0
+          image --severity HIGH,CRITICAL --exit-code 1 --ignore-unfixed blaze-duel-server:ci
       - name: Smoke test the container
         run: |
           docker run -d --name s -p 8080:8080 blaze-duel-server:ci
