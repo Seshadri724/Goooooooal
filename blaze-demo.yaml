@@ -1,0 +1,188 @@
+# Walkthrough for Blaze vs Bedrock, HD 3D only, ~2 minutes.  Render:  buildlens walk blaze-demo.yaml
+url: Blaze vs Bedrock.html       # next to this file
+size: 1280x720                   # page size; with scale: 2 the video is 2560x1440
+scale: 2                         # 2x pixel density: the game renders at its full 1920px and text is razor sharp
+fps: 30
+auto_zoom: 1                     # 1 = whole pitch; try 1.4 for a punchier demo
+
+steps:
+  - wait: 1
+  # Switch to HD 3D right away (the button cycles 32-Bit -> 64-Bit 3D -> HD 3D)
+  - click: "#modeBtn"
+  - wait: 0.2
+  - click: "#modeBtn"
+  - wait: 1.5
+
+  - click: "#startBtn"                          # Kick off
+  - wait: 3                                     # kickoff cutscene / whistle
+
+  # The script can't read the score, so it loops one attack cycle. In each cycle the SHOOT menu is answered with a
+  # different shot (Digit2..6 = the stronger, TP-costing shots). If there isn't enough TP the game ignores that key,
+  # so Digit1 (free Power Shot) follows as a fallback; outside a menu Digit1 does nothing.
+  # ~10 s per cycle. Add or remove cycles to change the length (a match ends at 3 goals).
+
+  # ---- attack 1: shot 2
+  - hold: {key: KeyD, seconds: 1.4}             # run at the ball / goal -> duel menu opens on contact
+  - press: Digit1                               # duel move
+  - wait: 1.2
+  - press: Space                                # skip cutscene / take the ball
+  - hold: {key: "KeyD+KeyW", seconds: 0.8}
+  - press: Space                                # shoot -> SHOOT menu opens
+  - wait: 0.7                                   # let the menu show on screen
+  - press: Digit2                              # this attack's shot
+  - press: Digit1                               # fallback if not enough TP
+  - wait: 1.5
+  - press: Space                                # skip goal banner / replay
+  - hold: {key: "KeyD+KeyS", seconds: 0.8}
+  - press: Digit1                               # keeper duel / block menu
+  - wait: 1
+
+  # ---- attack 2: shot 3
+  - hold: {key: KeyD, seconds: 1.4}             # run at the ball / goal -> duel menu opens on contact
+  - press: Digit1                               # duel move
+  - wait: 1.2
+  - press: Space                                # skip cutscene / take the ball
+  - hold: {key: "KeyD+KeyW", seconds: 0.8}
+  - press: Space                                # shoot -> SHOOT menu opens
+  - wait: 0.7                                   # let the menu show on screen
+  - press: Digit3                              # this attack's shot
+  - press: Digit1                               # fallback if not enough TP
+  - wait: 1.5
+  - press: Space                                # skip goal banner / replay
+  - hold: {key: "KeyD+KeyS", seconds: 0.8}
+  - press: Digit1                               # keeper duel / block menu
+  - wait: 1
+
+  # ---- attack 3: shot 4
+  - hold: {key: KeyD, seconds: 1.4}             # run at the ball / goal -> duel menu opens on contact
+  - press: Digit1                               # duel move
+  - wait: 1.2
+  - press: Space                                # skip cutscene / take the ball
+  - hold: {key: "KeyD+KeyW", seconds: 0.8}
+  - press: Space                                # shoot -> SHOOT menu opens
+  - wait: 0.7                                   # let the menu show on screen
+  - press: Digit4                              # this attack's shot
+  - press: Digit1                               # fallback if not enough TP
+  - wait: 1.5
+  - press: Space                                # skip goal banner / replay
+  - hold: {key: "KeyD+KeyS", seconds: 0.8}
+  - press: Digit1                               # keeper duel / block menu
+  - wait: 1
+
+  # ---- attack 4: shot 5
+  - hold: {key: KeyD, seconds: 1.4}             # run at the ball / goal -> duel menu opens on contact
+  - press: Digit1                               # duel move
+  - wait: 1.2
+  - press: Space                                # skip cutscene / take the ball
+  - hold: {key: "KeyD+KeyW", seconds: 0.8}
+  - press: Space                                # shoot -> SHOOT menu opens
+  - wait: 0.7                                   # let the menu show on screen
+  - press: Digit5                              # this attack's shot
+  - press: Digit1                               # fallback if not enough TP
+  - wait: 1.5
+  - press: Space                                # skip goal banner / replay
+  - hold: {key: "KeyD+KeyS", seconds: 0.8}
+  - press: Digit1                               # keeper duel / block menu
+  - wait: 1
+
+  # ---- attack 5: shot 6
+  - hold: {key: KeyD, seconds: 1.4}             # run at the ball / goal -> duel menu opens on contact
+  - press: Digit1                               # duel move
+  - wait: 1.2
+  - press: Space                                # skip cutscene / take the ball
+  - hold: {key: "KeyD+KeyW", seconds: 0.8}
+  - press: Space                                # shoot -> SHOOT menu opens
+  - wait: 0.7                                   # let the menu show on screen
+  - press: Digit6                              # this attack's shot
+  - press: Digit1                               # fallback if not enough TP
+  - wait: 1.5
+  - press: Space                                # skip goal banner / replay
+  - hold: {key: "KeyD+KeyS", seconds: 0.8}
+  - press: Digit1                               # keeper duel / block menu
+  - wait: 1
+
+  # ---- attack 6: shot 3
+  - hold: {key: KeyD, seconds: 1.4}             # run at the ball / goal -> duel menu opens on contact
+  - press: Digit1                               # duel move
+  - wait: 1.2
+  - press: Space                                # skip cutscene / take the ball
+  - hold: {key: "KeyD+KeyW", seconds: 0.8}
+  - press: Space                                # shoot -> SHOOT menu opens
+  - wait: 0.7                                   # let the menu show on screen
+  - press: Digit3                              # this attack's shot
+  - press: Digit1                               # fallback if not enough TP
+  - wait: 1.5
+  - press: Space                                # skip goal banner / replay
+  - hold: {key: "KeyD+KeyS", seconds: 0.8}
+  - press: Digit1                               # keeper duel / block menu
+  - wait: 1
+
+  # ---- attack 7: shot 5
+  - hold: {key: KeyD, seconds: 1.4}             # run at the ball / goal -> duel menu opens on contact
+  - press: Digit1                               # duel move
+  - wait: 1.2
+  - press: Space                                # skip cutscene / take the ball
+  - hold: {key: "KeyD+KeyW", seconds: 0.8}
+  - press: Space                                # shoot -> SHOOT menu opens
+  - wait: 0.7                                   # let the menu show on screen
+  - press: Digit5                              # this attack's shot
+  - press: Digit1                               # fallback if not enough TP
+  - wait: 1.5
+  - press: Space                                # skip goal banner / replay
+  - hold: {key: "KeyD+KeyS", seconds: 0.8}
+  - press: Digit1                               # keeper duel / block menu
+  - wait: 1
+
+  # ---- attack 8: shot 2
+  - hold: {key: KeyD, seconds: 1.4}             # run at the ball / goal -> duel menu opens on contact
+  - press: Digit1                               # duel move
+  - wait: 1.2
+  - press: Space                                # skip cutscene / take the ball
+  - hold: {key: "KeyD+KeyW", seconds: 0.8}
+  - press: Space                                # shoot -> SHOOT menu opens
+  - wait: 0.7                                   # let the menu show on screen
+  - press: Digit2                              # this attack's shot
+  - press: Digit1                               # fallback if not enough TP
+  - wait: 1.5
+  - press: Space                                # skip goal banner / replay
+  - hold: {key: "KeyD+KeyS", seconds: 0.8}
+  - press: Digit1                               # keeper duel / block menu
+  - wait: 1
+
+  # ---- attack 9: shot 6
+  - hold: {key: KeyD, seconds: 1.4}             # run at the ball / goal -> duel menu opens on contact
+  - press: Digit1                               # duel move
+  - wait: 1.2
+  - press: Space                                # skip cutscene / take the ball
+  - hold: {key: "KeyD+KeyW", seconds: 0.8}
+  - press: Space                                # shoot -> SHOOT menu opens
+  - wait: 0.7                                   # let the menu show on screen
+  - press: Digit6                              # this attack's shot
+  - press: Digit1                               # fallback if not enough TP
+  - wait: 1.5
+  - press: Space                                # skip goal banner / replay
+  - hold: {key: "KeyD+KeyS", seconds: 0.8}
+  - press: Digit1                               # keeper duel / block menu
+  - wait: 1
+
+  # ---- attack 10: shot 4
+  - hold: {key: KeyD, seconds: 1.4}             # run at the ball / goal -> duel menu opens on contact
+  - press: Digit1                               # duel move
+  - wait: 1.2
+  - press: Space                                # skip cutscene / take the ball
+  - hold: {key: "KeyD+KeyW", seconds: 0.8}
+  - press: Space                                # shoot -> SHOOT menu opens
+  - wait: 0.7                                   # let the menu show on screen
+  - press: Digit4                              # this attack's shot
+  - press: Digit1                               # fallback if not enough TP
+  - wait: 1.5
+  - press: Space                                # skip goal banner / replay
+  - hold: {key: "KeyD+KeyS", seconds: 0.8}
+  - press: Digit1                               # keeper duel / block menu
+  - wait: 1
+
+  # ---- finish
+  - wait: 2
+  - screenshot: gameplay
+  - screenshot: {name: title-bar, of: "header"}
+  - wait: 1
