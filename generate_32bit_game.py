@@ -134,7 +134,7 @@ const BASIC = {
   block:   { name: 'Tackle',       kind: 'block',   elem: 'none', power: 15, tp: 0 },
 };
 const HARU = {
-  id: 'haru', name: 'Haru Kagari', short: 'HARU', team: 'Akebono FC', role: 'Striker', elem: 'flame', num: 9,
+  id: 'haru', name: 'Nuem', short: 'NUEM', team: 'Akebono FC', role: 'Striker', elem: 'flame', num: 9,
   jersey: '#f2f4f8', trim: '#e0402a', hair: '#c41f2e', hairHi: '#ff7a52', brow: '#6e0e17', skin: '#f3caa4', eye: '#f6b92f',
   stats: { kick: 80, dribble: 70, block: 56, speed: 74 }, maxTP: 120,
   bio: 'Akebono’s first-year striker. Huge shots, thin defence. Gale Sweep and Tempest Drive are his only answers to Stone.',
@@ -146,7 +146,7 @@ const HARU = {
   ],
 };
 const JIN = {
-  id: 'jin', name: 'Jin Kurogane', short: 'JIN', team: 'Tetsuzan Academy', role: 'Libero', elem: 'stone', num: 5,
+  id: 'jin', name: 'Some', short: 'SOME', team: 'Tetsuzan Academy', role: 'Libero', elem: 'stone', num: 5,
   jersey: '#252a35', trim: '#e0a93f', hair: '#b3bcc9', hairHi: '#eef2f7', brow: '#5d6573', skin: '#e6b890', eye: '#e8962a',
   stats: { kick: 76, dribble: 64, block: 76, speed: 68 }, maxTP: 120,
   bio: 'Tetsuzan’s captain. Reads dribbles early and walls off the shooting lane. Granite Guard shuts down Flame.',
@@ -376,7 +376,7 @@ function startMatch(data) {
 }
 function endMatch(team) {
   mode = 'over';
-  $('overTitle').innerHTML = team === 0 ? '<span class="a">Haru</span> wins' : '<span class="b">Jin</span> wins';
+  $('overTitle').innerHTML = team === 0 ? '<span class="a">Nuem</span> wins' : '<span class="b">Some</span> wins';
   $('overSub').textContent = `${score[0]} – ${score[1]}. ` + (team === 0 ? 'Akebono’s Flame broke the wall.' : 'Tetsuzan’s Stone held firm. Try baiting Granite Guard before you shoot.');
   overScreen.hidden = false; sfx('whistle');
   $('againBtn').focus({ preventScroll: true });

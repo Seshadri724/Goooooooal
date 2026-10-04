@@ -223,11 +223,11 @@ const TitleScene: React.FC = () => {
 
 type Fighter = { name: string; elem: string; role: string; color: string };
 const FIGHTERS: Fighter[] = [
-  { name: "HARU", elem: "FLAME", role: "STRIKER", color: "#ff5a36" },
-  { name: "JIN", elem: "STONE", role: "LIBERO", color: "#e0a93f" },
-  { name: "RAIJIN", elem: "THUNDER", role: "WINGER", color: "#ffd84a" },
-  { name: "FUBUKI", elem: "FROST", role: "MIDFIELDER", color: "#7fd0ff" },
-  { name: "AOI", elem: "WATER", role: "PLAYMAKER", color: "#4dc3ff" },
+  { name: "NUEM", elem: "FLAME", role: "STRIKER", color: "#ff5a36" },
+  { name: "SOME", elem: "STONE", role: "LIBERO", color: "#e0a93f" },
+  { name: "NUM", elem: "THUNDER", role: "WINGER", color: "#ffd84a" },
+  { name: "VOLT", elem: "FROST", role: "MIDFIELDER", color: "#7fd0ff" },
+  { name: "SARI", elem: "WATER", role: "PLAYMAKER", color: "#4dc3ff" },
 ];
 
 const RosterScene: React.FC = () => {
