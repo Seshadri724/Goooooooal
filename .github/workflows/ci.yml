@@ -50,9 +50,9 @@ jobs:
           image --severity HIGH,CRITICAL --exit-code 1 --ignore-unfixed blaze-duel-server:ci
       - name: Smoke test the container
         run: |
-          docker run -d --name s -p 8080:8080 blaze-duel-server:ci
+          docker run -d --name smoke -p 8080:8080 blaze-duel-server:ci
           for i in $(seq 1 15); do curl -fs localhost:8080/healthz && exit 0; sleep 1; done
-          docker logs s; exit 1
+          docker logs smoke; exit 1
       - uses: docker/login-action@v3
         if: github.ref == 'refs/heads/main'
         with:
