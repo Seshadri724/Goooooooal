@@ -67,18 +67,24 @@ jobs:
           docker push $IMG:${GITHUB_SHA} && docker push $IMG:latest
 
   deploy:
-    # Enable by setting repository variable DEPLOY_FLY=true and secret FLY_API_TOKEN.
+    # Render (free plan). Enable with: secret RENDER_DEPLOY_HOOK_URL, variables RENDER_URL (https://<service>.onrender.com) and DEPLOY_RENDER=true.
     needs: image
-    if: github.ref == 'refs/heads/main' && vars.DEPLOY_FLY == 'true'
+    if: github.ref == 'refs/heads/main' && vars.DEPLOY_RENDER == 'true'
     runs-on: ubuntu-latest
     concurrency: deploy
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl deploy --remote-only --config server/fly.toml --dockerfile server/Dockerfile server
+      - name: Trigger Render deploy of this exact commit
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-      - name: Post-deploy health check (fails the job if the new release is unhealthy)
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: curl -fsS -X POST "${HOOK}&ref=${GITHUB_SHA}" -o /dev/null
+      - name: Wait until the new release is live (fails the job if it never reports this commit)
+        env:
+          URL: ${{ vars.RENDER_URL }}
         run: |
-          for i in $(seq 1 20); do curl -fs https://blaze-duel.fly.dev/healthz && exit 0; sleep 3; done
-          exit 1
+          # Free-plan builds plus a cold start take a few minutes; give it up to 15.
+          for i in $(seq 1 90); do
+            if curl -fs --max-time 70 "$URL/healthz" | grep -q "\"version\":\"${GITHUB_SHA}\""; then echo "live: ${GITHUB_SHA}"; exit 0; fi
+            sleep 10
+          done
+          echo "Render never reported ${GITHUB_SHA} on /healthz"; curl -s "$URL/healthz"; exit 1

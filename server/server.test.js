@@ -41,7 +41,8 @@ test('create, join, relay, leave, metrics, limits', async () => {
 
   const txt = await (await fetch(`http://127.0.0.1:${s.port}/metrics`)).text();
   assert.match(txt, /blaze_rooms_active 1/); assert.match(txt, /blaze_rooms_created_total 1/);
-  assert.equal((await fetch(`http://127.0.0.1:${s.port}/healthz`)).status, 200);
+  const h = await fetch(`http://127.0.0.1:${s.port}/healthz`);
+  assert.equal(h.status, 200); assert.equal((await h.json()).version, process.env.RENDER_GIT_COMMIT || process.env.GIT_SHA || 'dev');
 
   guest.close();
   let last; do { last = await next(host); } while (last.t === 'in'); // skip the flood messages that got under the limit
