@@ -110,3 +110,15 @@ scratch/
 .env
 .env.local
 .env.*.local
+
+# Online server / DevOps (server/, .github/)
+coverage/
+.nyc_output/
+.fly/
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+docker-compose.override.yml
+prometheus-data/
+grafana-data/

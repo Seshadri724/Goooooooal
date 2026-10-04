@@ -1849,6 +1849,11 @@ Keeper duel   shot × distance
         if (kind === 'dribble') { const m = afford[0]; if (p.tp - m.tp < 45 && Math.random() < 0.5) return basic; return Math.random() < 0.55 ? m : basic; }
         return basic;
       }
+      // Online 1v1: online.js fills ON. A `remote` fighter/keeper is driven by the guest's keys and menu picks (see online.js).
+      const ON = { ask: null, take: null };
+      function pickFor(p, opts, kind, info, title) {
+        return p.remote ? ON.ask(p, title, opts, () => aiPick(p, opts, kind, info)) : Promise.resolve(aiPick(p, opts, kind, info));
+      }
       function sidesOf(a, b) {
         const mk = o => ({
           name: o.name || o.ent.ch.short, move: o.move, score: o.score, mod: o.mod || 1, sig: o.sig || 1,
@@ -1881,11 +1886,13 @@ Keeper duel   shot × distance
         ov = {}; texts = []; hitStop = 0; imp = null; decals = [];
       }
       function quitToTitle() {
+        if (ON.quit) ON.quit();
         stopMatch(); score = [0, 0]; mode = 'title'; placeKickoff(0);
         overScreen.hidden = true; titleScreen.hidden = false;
         $('startBtn').focus({ preventScroll: true }); introTitle();
       }
       function startMatch(data) {
+        if (ON.again) ON.again();
         stopMatch();
         score = (data && Array.isArray(data.score)) ? data.score.slice(0, 2) : [0, 0];
         haru.tp = 60; jin.tp = 60; keepers.forEach(k => { k.tp = 60; });
@@ -1899,6 +1906,7 @@ Keeper duel   shot × distance
         $('overTitle').innerHTML = `<span style="color:${ELEM[w.elem].c}">${w.short[0] + w.short.slice(1).toLowerCase()}</span> wins`;
         $('overSub').textContent = `${score[0]} – ${score[1]}. ${w.team}’s ${ELEM[w.elem].name} took the match.`;
         overScreen.hidden = false; sfx('whistle');
+        if (ON.over) ON.over($('overTitle').textContent, $('overSub').textContent);
         fx(g => g.from('#overScreen .screen-card > *', { y: 36, autoAlpha: 0, stagger: 0.12, duration: 0.5, ease: 'back.out(1.8)', clearProps: CLR }));
         $('againBtn').focus({ preventScroll: true });
       }
@@ -1916,11 +1924,11 @@ Keeper duel   shot × distance
         let am, dm;
         if (att.human) {
           const aP = askMenu(`${att.ch.name} (Ball)`, 'Choose your dribble move', aOpts, att);
-          const dP = Promise.resolve(aiPick(def, dOpts, 'dribble', {}));
+          const dP = pickFor(def, dOpts, 'dribble', {}, 'Choose your block move');
           [am, dm] = await Promise.all([aP, dP]);
         } else {
           const dP = askMenu(`${def.ch.name} (Defence)`, 'Choose your block move', dOpts, def);
-          const aP = Promise.resolve(aiPick(att, aOpts, 'dribble', {}));
+          const aP = pickFor(att, aOpts, 'dribble', {}, 'Choose your dribble move');
           [am, dm] = await Promise.all([aP, dP]);
         }
         if (id !== matchId) return;
@@ -1971,8 +1979,8 @@ Keeper duel   shot × distance
           delete ov.aim;
         } else {
           const dist = Math.hypot(p.x - (p.team === 0 ? F.x1 : F.x0), p.y - CY);
-          m = aiPick(p, opts, 'shot', { dist });
-          if (m === BASIC.shot && inLane(p)) m = BASIC.chip; // the AI chips a plain shot over a defender in its way
+          m = await pickFor(p, opts, 'shot', { dist }, 'Choose your strike');
+          if (!p.remote && m === BASIC.shot && inLane(p)) m = BASIC.chip; // the AI chips a plain shot over a defender in its way
         }
         if (id !== matchId) return;
         if (!m) { mode = 'play'; return; }
@@ -2082,7 +2090,7 @@ Keeper duel   shot × distance
         if (def.human) {
           dm = await askMenu(`${def.ch.name} (Shot incoming!)`, 'Choose your block', dOpts, def);
         } else {
-          dm = aiPick(def, dOpts, 'shotblock', { power: s.power });
+          dm = await pickFor(def, dOpts, 'shotblock', { power: s.power }, 'Shot incoming! Choose your block');
         }
         if (id !== matchId) return;
         if (!dm) dm = BASIC.block;
@@ -2257,7 +2265,7 @@ Keeper duel   shot × distance
         const opts = [BASIC.catch, ...k.ch.moves];
         let km = k.team === 0
           ? await askMenu(`${k.ch.name} (Keeper)`, 'Shot incoming! Choose your save', opts, k)
-          : aiPick(k, opts, 'shotblock', { power: shot.power });
+          : await pickFor(k, opts, 'shotblock', { power: shot.power }, 'Shot incoming! Choose your save');
         if (id !== matchId) return;
         if (!km) km = BASIC.catch;
         k.tp = Math.max(0, k.tp - km.tp);
@@ -2372,6 +2380,13 @@ Keeper duel   shot × distance
         }
       }
 
+      function viewRel(ix, iy) { // movement relative to the view: up = where the camera looks
+        if (cam3().rel && (ix || iy)) {
+          const yw = cam3().id === 'orbit' ? camSt.orbit : camSt.yaw, c = Math.cos(yw), sn = Math.sin(yw);
+          return [-sn * ix - c * iy, c * ix - sn * iy];
+        }
+        return [ix, iy];
+      }
       function update(dt) {
         if (mode !== 'play') return;
         duelCd = Math.max(0, duelCd - dt);
@@ -2383,19 +2398,25 @@ Keeper duel   shot × distance
           if (keys.has('KeyA') || keys.has('ArrowLeft')) ix -= 1;
           if (keys.has('KeyD') || keys.has('ArrowRight')) ix += 1;
         }
-        if (cam3().rel && (ix || iy)) { // movement relative to the view: up = where the camera looks
-          const yw = cam3().id === 'orbit' ? camSt.orbit : camSt.yaw, c = Math.cos(yw), sn = Math.sin(yw);
-          [ix, iy] = [-sn * ix - c * iy, c * ix - sn * iy];
-        }
+        [ix, iy] = viewRel(ix, iy);
         if (actionPressed) {
           actionPressed = false;
           if (ball.owner === haru && haru.stun <= 0) { shoot(haru); return; }
           if (haru.dashCd <= 0 && haru.stun <= 0) { haru.dash = 0.22; haru.dashCd = 0.9; sfx('dash'); }
         }
         steer(haru, ix, iy, dt);
-        aiT -= dt; if (aiT <= 0) { aiT = 0.1; aiThink(); }
-        if (aiShoot) { aiShoot = false; if (ball.owner === jin && jin.stun <= 0) { shoot(jin); return; } }
-        steer(jin, aiDir.x * 0.94, aiDir.y * 0.94, dt);
+        if (jin.remote) { // online guest: same controls as the host's fighter
+          const r = ON.take(), [rx, ry] = viewRel(r.x, r.y);
+          if (r.act) {
+            if (ball.owner === jin && jin.stun <= 0) { shoot(jin); return; }
+            if (jin.dashCd <= 0 && jin.stun <= 0) { jin.dash = 0.22; jin.dashCd = 0.9; sfx('dash'); }
+          }
+          steer(jin, rx, ry, dt);
+        } else {
+          aiT -= dt; if (aiT <= 0) { aiT = 0.1; aiThink(); }
+          if (aiShoot) { aiShoot = false; if (ball.owner === jin && jin.stun <= 0) { shoot(jin); return; } }
+          steer(jin, aiDir.x * 0.94, aiDir.y * 0.94, dt);
+        }
         if (!ball.owner) {
           const dx = jin.x - haru.x, dy = jin.y - haru.y, d = Math.hypot(dx, dy);
           if (d > 0 && d < 24) { const push = (24 - d) / 2; haru.x -= dx / d * push; haru.y -= dy / d * push; jin.x += dx / d * push; jin.y += dy / d * push; }
@@ -5507,6 +5528,7 @@ Keeper duel   shot × distance
         excite += (0.15 - excite) * Math.min(1, dt * 0.6); // ~2s to settle back
         if (crowdG) crowdG.gain.setTargetAtTime(muted || engineMode === '12bit' || mode === 'title' ? 0 : 0.012 + 0.07 * excite, AC.currentTime, 0.2);
         draw(now);
+        if (ON.tick) ON.tick(); // online host: copy the finished frame into the stream canvas
         if (perf.show) drawPerf();
         requestAnimationFrame(frame);
       }
@@ -5708,10 +5730,13 @@ Keeper duel   shot × distance
         if (data && data.inMatch && Array.isArray(data.score)) startMatch({ score: data.score });
         requestAnimationFrame(t => { last = t; frame(t); });
       }
+      // Handle for online.js (online 1v1): the fighters, the canvases, and the few game functions it needs.
+      window.BVB = { ON, haru, jin, keepers, cv, ELEM, startMatch, addText, initAudio, CX, CY, get r3() { return r3; } };
       try { window.claude?.hot?.snapshot?.(() => ({ score: score.slice(), inMatch: mode === 'play' || mode === 'freeze' })); } catch (e) { }
       if (window.claude?.hot?.ready) window.claude.hot.ready(start); else start(window.claude?.hot?.data ?? {});
     })();
   </script>
+  <script src="online.js"></script>
 
 </body>
 

@@ -133,6 +133,33 @@ Then navigate to `http://localhost:8000/Blaze%20vs%20Bedrock.html`.
 
 ---
 
+## 🌐 Online 1v1
+
+The host runs the real game and streams its canvas and audio to the guest over WebRTC. The guest sends keys and move picks back and plays the right-hand fighter. `server/` only pairs players by room code and relays signaling, input and menu picks.
+
+```
+Host browser ──WebRTC video+audio──► Guest browser
+     ▲  └──────── WebSocket ────────┐     │
+     └─ input + menu picks ◄── room server (server/) ◄┘   /healthz  /metrics
+```
+
+Run it locally (two terminals, then open the game in two tabs and use **Play online 1v1**):
+
+```bash
+cd server && npm ci && npm start
+```
+
+```bash
+python -m http.server 8000
+```
+
+* **Config:** `?server=wss://host` overrides the server URL; `SERVER` and the STUN list sit at the top of `online.js`. On the server, `PORT` and `ALLOWED_ORIGINS` (comma-separated) are env vars.
+* **Ops:** `GET /healthz`, Prometheus text at `GET /metrics` (rooms, connections, relayed/dropped messages, bytes). Per-socket rate limit, 8 KB message cap, origin allow-list, ping/pong reaping of dead sockets.
+* **CI/CD:** `.github/workflows/ci.yml` runs tests and `npm audit`, builds the image, scans it with Trivy, smoke-tests the container, pushes to GHCR on `main`, and deploys to Fly.io when repository variable `DEPLOY_FLY=true` and secret `FLY_API_TOKEN` are set.
+* **Known limits:** STUN only (some networks need a TURN server); rooms live in one process's memory; the guest feels host round-trip lag and the host could cheat, which is fine for friends.
+
+---
+
 ## 📁 Repository Structure
 
 ```
@@ -156,6 +183,6 @@ FOOTBALL/
 * [ ] **Clash Minigame**: Split-screen button mash/timing clash on tied rolls.
 * [x] **Roster Expansion**: Thunder (⚡), Water (💧) and Frost (❄️) fighters (Raijin, Aoi, Fubuki) with a title-screen fighter select.
 * [ ] **Roguelite Tournament Mode**: Single-player cup with artifact drafts and skill unlocks (*Balatro* x *Soccer*).
-* [ ] **WebRTC Multiplayer**: 1-click room codes for instant peer-to-peer friend matches via WebRTC (PeerJS).
+* [x] **Online 1v1**: room codes, host-streamed WebRTC play and a Node room server (see *Online 1v1* below). The guest can use the keyboard or the on-screen touch stick.
 * [ ] **Gamepad Support**: Standard Gamepad API integration for Xbox, PlayStation, and 8BitDo controllers.
 * [ ] **Steam & Portal Release**: Exporting for Poki / CrazyGames web portals and packaging for Steam via Tauri / Electron.
