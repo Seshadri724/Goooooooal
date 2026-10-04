@@ -6,6 +6,8 @@ RUN npm ci --omit=dev
 FROM node:22-alpine
 ENV NODE_ENV=production PORT=8080
 WORKDIR /app
+# The runtime only needs `node`: drop the package managers (their bundled deps are what image scanners flag).
+RUN rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /opt/yarn-* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 COPY --from=deps /app/node_modules node_modules
 COPY package.json server.js ./
 USER node
