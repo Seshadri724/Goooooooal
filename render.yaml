@@ -1,0 +1,28 @@
+# Render Blueprint for the online 1v1 room server (free plan).
+# Deploys are triggered by CI (deploy hook) only after tests, image scan and smoke test pass.
+# Free plan: sleeps after 15 min without traffic, ~1 min to wake; rooms live in memory, so one instance only.
+services:
+  - name: blaze-duel
+    type: web
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    healthCheckPath: /healthz
+    autoDeployTrigger: "off"
+    envVars:
+      - key: ALLOWED_ORIGINS # comma-separated origins allowed to open a WebSocket, e.g. https://blaze-game.onrender.com
+        sync: false
+
+  # The game page (free static site). Publishes only the files the page loads at runtime, not the renders/.blend sources.
+  - name: blaze-game
+    type: web
+    runtime: static
+    autoDeployTrigger: checksPass # redeploys after CI is green on the branch
+    buildCommand: >-
+      mkdir -p public/assets/haru &&
+      cp index.html "Blaze vs Bedrock.html" online.js public/ &&
+      cp assets/gk-*.json public/assets/ &&
+      cp assets/haru/haru.glb assets/haru/poses.json public/assets/haru/
+    staticPublishPath: ./public

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I/O: harder to misread when shared aloud
+const VERSION = process.env.RENDER_GIT_COMMIT || process.env.GIT_SHA || 'dev'; // CI waits for /healthz to report the commit it deployed
 const RELAY = new Set(['sig', 'in', 'menu', 'pick', 'over', 'again']); // the only message types forwarded to the peer
 
 export function createServer({
@@ -32,7 +33,7 @@ export function createServer({
   ].map(([n, t, v]) => `# TYPE ${n} ${t}\n${n} ${v}`).join('\n') + '\n';
 
   const server = http.createServer((req, res) => {
-    if (req.url === '/healthz') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ ok: true, rooms: rooms.size })); }
+    if (req.url === '/healthz') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ ok: true, rooms: rooms.size, version: VERSION })); }
     if (req.url === '/metrics') { res.writeHead(200, { 'content-type': 'text/plain; version=0.0.4' }); return res.end(metrics()); }
     res.writeHead(404); res.end();
   });

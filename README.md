@@ -155,7 +155,7 @@ python -m http.server 8000
 
 * **Config:** `?server=wss://host` overrides the server URL; `SERVER` and the STUN list sit at the top of `online.js`. On the server, `PORT` and `ALLOWED_ORIGINS` (comma-separated) are env vars.
 * **Ops:** `GET /healthz`, Prometheus text at `GET /metrics` (rooms, connections, relayed/dropped messages, bytes). Per-socket rate limit, 8 KB message cap, origin allow-list, ping/pong reaping of dead sockets.
-* **CI/CD:** `.github/workflows/ci.yml` runs tests and `npm audit`, builds the image, scans it with Trivy, smoke-tests the container, pushes to GHCR on `main`, and deploys to Fly.io when repository variable `DEPLOY_FLY=true` and secret `FLY_API_TOKEN` are set.
+* **CI/CD:** `.github/workflows/ci.yml` runs tests and `npm audit`, builds the image, scans it with Trivy, smoke-tests the container, pushes to GHCR on `main`, then deploys to Render's free plan ([render.yaml](render.yaml)) through a deploy hook pinned to the tested commit and waits until `/healthz` reports that commit. Enable it with the secret `RENDER_DEPLOY_HOOK_URL` and the variables `RENDER_URL` and `DEPLOY_RENDER=true`. The free plan sleeps after 15 idle minutes; the client wakes it before connecting (about a minute).
 * **Known limits:** STUN only (some networks need a TURN server); rooms live in one process's memory; the guest feels host round-trip lag and the host could cheat, which is fine for friends.
 
 ---

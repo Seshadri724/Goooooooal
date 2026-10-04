@@ -6,7 +6,7 @@
   const { ON, jin, keepers, cv } = B;
   const $ = id => document.getElementById(id);
   const SERVER = new URLSearchParams(location.search).get('server') ||
-    (!location.hostname || /^(localhost|127\.)/.test(location.hostname) ? 'ws://localhost:8080' : 'wss://blaze-duel.fly.dev');
+    (!location.hostname || /^(localhost|127\.)/.test(location.hostname) ? 'ws://localhost:8080' : 'wss://blaze-duel.onrender.com'); // your Render service URL
   const ICE = [{ urls: 'stun:stun.l.google.com:19302' }]; // ponytail: STUN only; add a TURN server for the ~10-15% of NATs that block direct links
   const ASK_TIMEOUT = 20000; // a silent guest gets the AI's pick instead of freezing the match
 
@@ -51,8 +51,13 @@
   $('onCreate').onclick = () => start('create');
   $('onJoin').onclick = () => { const c = $('onCode').value.trim().toUpperCase(); if (c.length === 4) start('join', c); else setMsg('Enter the 4-letter code.'); };
 
-  function start(kind, code) {
-    B.initAudio(); lobbyBusy(true); setMsg('Connecting to server…');
+  let attempt = 0; // bumped by teardown, so a Close during the wake-up wait cancels the connect
+  async function start(kind, code) {
+    B.initAudio(); lobbyBusy(true); setMsg('Connecting to server… (a sleeping free server takes up to a minute to wake)');
+    const mine = ++attempt;
+    // Wake the server with a plain request first; a free Render service answers once it has spun up. no-cors: we only need it awake.
+    try { await fetch(SERVER.replace(/^ws/, 'http') + '/healthz', { mode: 'no-cors', cache: 'no-store' }); } catch { }
+    if (mine !== attempt) return;
     ws = new WebSocket(SERVER);
     ws.onopen = () => send(kind === 'create' ? { t: 'create' } : { t: 'join', code });
     ws.onerror = () => { teardown('Cannot reach the game server.'); };
@@ -199,6 +204,7 @@
 
   // ---------- teardown ----------
   function teardown(msg) {
+    attempt++;
     const wasGuest = role === 'guest', wasHost = role === 'host';
     if (pc) { pc.onconnectionstatechange = null; pc.close(); pc = null; }
     if (ws) { const w = ws; ws = null; w.onclose = null; w.close(); }
