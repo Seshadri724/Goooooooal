@@ -1002,7 +1002,7 @@
         <div class="screen" id="titleScreen">
           <div class="screen-card">
             <p class="eyebrow">First to 3 goals</p>
-            <h2 id="titleVs"><span class="a">Haru</span><span class="v">vs</span><span class="b">Jin</span></h2>
+            <h2 id="titleVs"><span class="a">Nuem</span><span class="v">vs</span><span class="b">Some</span></h2>
             <div class="pick" id="pickA" role="radiogroup" aria-label="Your fighter"></div>
             <div class="pick rival" id="pickB" role="radiogroup" aria-label="Rival"></div>
             <p class="lede">Run into the ball carrier to start a duel. Time stops, you pick a move, and the element
@@ -1014,7 +1014,7 @@
         <div class="screen" id="overScreen" hidden>
           <div class="screen-card">
             <p class="eyebrow">Full time</p>
-            <h2 id="overTitle">Haru wins</h2>
+            <h2 id="overTitle">Nuem wins</h2>
             <p class="lede" id="overSub"></p>
             <button type="button" class="primary" id="againBtn"><span>Rematch</span></button>
           </div>
@@ -1168,7 +1168,7 @@ Keeper duel   shot × distance
       const MV_SHIELD = { name: 'Iron Bulwark', kind: 'catch', elem: 'steel', power: 58, tp: 34, style: 'shield', note: 'A giant iron shield' };
       const MV_HANDS = { name: 'Titan Hands', kind: 'catch', elem: 'beast', power: 56, tp: 32, style: 'hands', note: 'Two giant hands swat it away' };
       const HARU = {
-        id: 'haru', name: 'Haru Kagari', short: 'HARU', team: 'Akebono FC', role: 'Striker', elem: 'flame', num: 9,
+        id: 'haru', name: 'Nuem', short: 'NUEM', team: 'Akebono FC', role: 'Striker', elem: 'flame', num: 9,
         jersey: '#f2f4f8', trim: '#e0402a', hair: '#c41f2e', hairHi: '#ff7a52', brow: '#6e0e17', skin: '#f3caa4', eye: '#f6b92f',
         stats: { kick: 80, dribble: 70, block: 56, speed: 74 }, maxTP: 120, spiky: true,
         bio: 'Akebono’s first-year striker. Huge shots, thin defence. Gale Sweep and Tempest Drive are his only answers to Stone.',
@@ -1185,7 +1185,7 @@ Keeper duel   shot × distance
         ],
       };
       const JIN = {
-        id: 'jin', name: 'Jin Kurogane', short: 'JIN', team: 'Tetsuzan Academy', role: 'Libero', elem: 'stone', num: 5,
+        id: 'jin', name: 'Some', short: 'SOME', team: 'Tetsuzan Academy', role: 'Libero', elem: 'stone', num: 5,
         jersey: '#252a35', trim: '#e0a93f', hair: '#b3bcc9', hairHi: '#eef2f7', brow: '#5d6573', skin: '#e6b890', eye: '#e8962a',
         stats: { kick: 76, dribble: 64, block: 76, speed: 68 }, maxTP: 120, spiky: false,
         bio: 'Tetsuzan’s captain. Reads dribbles early and walls off the shooting lane. Granite Guard shuts down Flame.',
@@ -1201,7 +1201,7 @@ Keeper duel   shot × distance
       // Roster expansion (README roadmap): Thunder, Water and Frost fighters. `spiky` picks the hairstyle and idle fidget (spiky:
       // 5 spikes, toe-bouncing · else 3 swept locks, weight-shifting) in every renderer; each reuses the styled specials above.
       const RAIJIN = {
-        id: 'raijin', name: 'Raijin Ikazuchi', short: 'RAIJIN', team: 'Raikou Tech', role: 'Winger', elem: 'thunder', num: 11, spiky: true,
+        id: 'raijin', name: 'Num', short: 'NUM', team: 'Raikou Tech', role: 'Winger', elem: 'thunder', num: 11, spiky: true,
         jersey: '#1b1f3a', trim: '#ffd84a', hair: '#ffd84a', hairHi: '#fffbd0', brow: '#7a5a00', skin: '#efc3a0', eye: '#7fd0ff',
         stats: { kick: 74, dribble: 78, block: 50, speed: 88 }, maxTP: 120,
         bio: 'Raikou’s lightning winger. Fastest on the pitch, and his bolts are impossible to block. Stone folds to Thunder; Beast shots can ground him.',
@@ -1213,7 +1213,7 @@ Keeper duel   shot × distance
         ],
       };
       const FUBUKI = {
-        id: 'fubuki', name: 'Fubuki Shirayuki', short: 'FUBUKI', team: 'Tetsuzan Academy', role: 'Midfielder', elem: 'frost', num: 8, spiky: false,
+        id: 'fubuki', name: 'Volt', short: 'VOLT', team: 'Tetsuzan Academy', role: 'Midfielder', elem: 'frost', num: 8, spiky: false,
         jersey: '#9fd4ff', trim: '#173a66', hair: '#bfe8ff', hairHi: '#ffffff', brow: '#5b86aa', skin: '#f6d9c4', eye: '#4aa8ff',
         stats: { kick: 70, dribble: 72, block: 74, speed: 66 }, maxTP: 120,
         bio: 'Tetsuzan’s ice-cold playmaker. Slows the game down and freezes the lane. Frost shuts down Flame; Blade shots cut straight through her.',
@@ -1225,7 +1225,7 @@ Keeper duel   shot × distance
         ],
       };
       const AOI = {
-        id: 'aoi', name: 'Aoi Minato', short: 'AOI', team: 'Akebono FC', role: 'Playmaker', elem: 'water', num: 10, spiky: true,
+        id: 'aoi', name: 'Sari', short: 'SARI', team: 'Akebono FC', role: 'Playmaker', elem: 'water', num: 10, spiky: true,
         jersey: '#2b6fe0', trim: '#f2f4f8', hair: '#2a6bff', hairHi: '#8fc2ff', brow: '#102a6b', skin: '#f0c49a', eye: '#35d6c0',
         stats: { kick: 72, dribble: 82, block: 62, speed: 72 }, maxTP: 120,
         bio: 'Akebono’s tidal playmaker. The best dribbler in the league, and her water jet soaks the keeper. Water douses Flame; Nature shots drink it up.',
@@ -1239,13 +1239,13 @@ Keeper duel   shot × distance
       const ROSTER = [HARU, JIN, RAIJIN, FUBUKI, AOI];
       // Keepers belong to a side, not a team: the left one's save is picked by the player, the right one's by the AI.
       const GK_A = {
-        id: 'gk0', name: 'Kaito Minase', short: 'KAITO', team: 'Akebono FC', role: 'Goalkeeper', elem: 'gale', num: 1,
+        id: 'gk0', name: 'Arju', short: 'ARJU', team: 'Akebono FC', role: 'Goalkeeper', elem: 'gale', num: 1,
         jersey: '#4dd684', trim: '#0b3d22', hair: '#2b3a67', hairHi: '#5d74b8', brow: '#1b2340', skin: '#f0c49a', eye: '#35d6c0',
         stats: { catch: 60 }, maxTP: 100,
         moves: [{ name: 'Tornado Wall', kind: 'catch', elem: 'gale', power: 52, tp: 30 }, MV_SHIELD, MV_HANDS],
       };
       const GK_B = {
-        id: 'gk1', name: 'Genta Iwaki', short: 'GENTA', team: 'Tetsuzan Academy', role: 'Goalkeeper', elem: 'stone', num: 1,
+        id: 'gk1', name: 'Rami', short: 'RAMI', team: 'Tetsuzan Academy', role: 'Goalkeeper', elem: 'stone', num: 1,
         jersey: '#7b6dff', trim: '#1e1850', hair: '#3a2a1a', hairHi: '#6d5238', brow: '#20150b', skin: '#e0ae84', eye: '#e0a93f',
         stats: { catch: 60 }, maxTP: 100,
         moves: [{ name: 'Bedrock Fortress', kind: 'catch', elem: 'stone', power: 54, tp: 32 }, MV_SHIELD, MV_HANDS],
@@ -3991,7 +3991,7 @@ Keeper duel   shot × distance
           true: [5, { spikeLen: 13, spread: 0.55, spikeX: -3, spikeY: 7, spikeTilt: 0.8 }],
           false: [3, { spikeLen: 16, spread: 0.8, spikeX: -7, spikeY: -2, spikeTilt: 2.1 }],
         };
-        // ---- Haru Kagari's model: a skinned GLB (assets/haru/haru.glb, built in Blender: assets/haru/src) that wears the rig above.
+        // ---- Nuem's model: a skinned GLB (assets/haru/haru.glb, built in Blender: assets/haru/src) that wears the rig above.
         // The primitive character stays as an invisible control skeleton: gait, kicks, dives, cutscenes and the face blends all keep
         // driving the same joints, and syncHaru() copies those joint rotations onto the GLB's bones every frame. If the GLB can't be
         // fetched (file://, offline) nothing changes and the primitive Haru is drawn.

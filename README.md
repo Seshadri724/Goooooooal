@@ -59,20 +59,20 @@ The project features a **Triple-Pipeline Graphics Engine**, allowing instant swi
 
 | Player | Team | Role | Element | Stats (Kick/Dribble/Block/Spd) | Signature Moves |
 | :--- | :--- | :--- | :---: | :---: | :--- |
-| **Haru Kagari** | Akebono FC | Striker (#9) | 🔥 Flame | 80 / 70 / 56 / 74 | *Crimson Meteor*, *Tempest Drive*, *Blaze Step*, *Gale Sweep*, *Phantom Barrage*, *Photon Laser*, *Hellfire Missile*, *Thunderbolt Barrage*, *Gatling Volley*, *Avalanche Snowball*, *Hydro Cannon*, *Imperial Dragon*, *Colossus Lion*, *Sword Storm*, *Verdant Tempest*, *Zigzag Comet* |
-| **Jin Kurogane** | Tetsuzan Academy | Libero (#5) | 🪨 Stone | 76 / 64 / 76 / 68 | *Tectonic Hammer*, *Shard Spiral*, *Granite Guard*, *Mirage Feint* |
-| **Raijin Ikazuchi** | Raikou Tech | Winger (#11) | ⚡ Thunder | 74 / 78 / 50 / 88 | *Volt Strike*, *Static Dash*, *Shock Wall*, *Thunderbolt Barrage*, *Zigzag Comet*, *Gatling Volley* |
-| **Fubuki Shirayuki** | Tetsuzan Academy | Midfielder (#8) | ❄️ Frost | 70 / 72 / 74 / 66 | *Glacier Lance*, *Ice Slide*, *Frost Wall*, *Avalanche Snowball*, *Sword Storm*, *Zigzag Comet* |
-| **Aoi Minato** | Akebono FC | Playmaker (#10) | 💧 Water | 72 / 82 / 62 / 72 | *Tidal Burst*, *Current Glide*, *Undertow*, *Hydro Cannon*, *Imperial Dragon*, *Verdant Tempest* |
+| **Nuem** | Akebono FC | Striker (#9) | 🔥 Flame | 80 / 70 / 56 / 74 | *Crimson Meteor*, *Tempest Drive*, *Blaze Step*, *Gale Sweep*, *Phantom Barrage*, *Photon Laser*, *Hellfire Missile*, *Thunderbolt Barrage*, *Gatling Volley*, *Avalanche Snowball*, *Hydro Cannon*, *Imperial Dragon*, *Colossus Lion*, *Sword Storm*, *Verdant Tempest*, *Zigzag Comet* |
+| **Some** | Tetsuzan Academy | Libero (#5) | 🪨 Stone | 76 / 64 / 76 / 68 | *Tectonic Hammer*, *Shard Spiral*, *Granite Guard*, *Mirage Feint* |
+| **Num** | Raikou Tech | Winger (#11) | ⚡ Thunder | 74 / 78 / 50 / 88 | *Volt Strike*, *Static Dash*, *Shock Wall*, *Thunderbolt Barrage*, *Zigzag Comet*, *Gatling Volley* |
+| **Volt** | Tetsuzan Academy | Midfielder (#8) | ❄️ Frost | 70 / 72 / 74 / 66 | *Glacier Lance*, *Ice Slide*, *Frost Wall*, *Avalanche Snowball*, *Sword Storm*, *Zigzag Comet* |
+| **Sari** | Akebono FC | Playmaker (#10) | 💧 Water | 72 / 82 / 62 / 72 | *Tidal Burst*, *Current Glide*, *Undertow*, *Hydro Cannon*, *Imperial Dragon*, *Verdant Tempest* |
 
-Pick your fighter and your rival on the title screen (picking the rival's fighter swaps the two). The keepers belong to the left and right side, so they stay Kaito (you) and Genta (AI) whoever plays.
+Pick your fighter and your rival on the title screen (picking the rival's fighter swaps the two). The keepers belong to the left and right side, so they stay Arju (you) and Rami (AI) whoever plays.
 
 ### Goalkeepers
 
 | Keeper | Team | Role | Element | Catch Stat | Signature Save |
 | :--- | :--- | :--- | :---: | :---: | :--- |
-| **Kaito Minase** | Akebono FC | Goalkeeper (#1) | 🌪️ Gale | 60 | *Tornado Wall* (Power: 52, TP: 30), *Iron Bulwark* (giant iron shield, Power: 58, TP: 34), *Titan Hands* (two giant hands, Power: 56, TP: 32) |
-| **Genta Iwaki** | Tetsuzan Academy | Goalkeeper (#1) | 🪨 Stone | 60 | *Bedrock Fortress* (Power: 54, TP: 32), *Iron Bulwark*, *Titan Hands* |
+| **Arju** | Akebono FC | Goalkeeper (#1) | 🌪️ Gale | 60 | *Tornado Wall* (Power: 52, TP: 30), *Iron Bulwark* (giant iron shield, Power: 58, TP: 34), *Titan Hands* (two giant hands, Power: 56, TP: 32) |
+| **Rami** | Tetsuzan Academy | Goalkeeper (#1) | 🪨 Stone | 60 | *Bedrock Fortress* (Power: 54, TP: 32), *Iron Bulwark*, *Titan Hands* |
 
 ---
 
@@ -87,7 +87,7 @@ Pick your fighter and your rival on the title screen (picking the rival's fighte
 * **Skip Cutscenes**: `Space` or mouse click.
 * **Engine Switching**: `T` (cycles between 32-Bit Arcade ➔ 64-Bit 3D ➔ HD 3D ➔ 12-Bit Amiga).
 * **HD Lighting**: `G` (HD 3D only) switches between a night match and golden hour.
-* **Camera views**: `C` / `Shift+C` (3D modes only) cycles Broadcast, Cinematic, Follow, Over-the-shoulder, Orbit (drag, `Q`/`E`, wheel), First-person, Helmet HUD, Cockpit, Fixed angles, Isometric, Top-down, CCTV and Photo mode. Photo mode freezes the match: `WASD` to fly, `Q`/`E` to go down/up, drag to look, wheel to zoom, `Space` to save a PNG. In the views that sit behind or inside Haru, movement keys follow the camera.
+* **Camera views**: `C` / `Shift+C` (3D modes only) cycles Broadcast, Cinematic, Follow, Over-the-shoulder, Orbit (drag, `Q`/`E`, wheel), First-person, Helmet HUD, Cockpit, Fixed angles, Isometric, Top-down, CCTV and Photo mode. Photo mode freezes the match: `WASD` to fly, `Q`/`E` to go down/up, drag to look, wheel to zoom, `Space` to save a PNG. In the views that sit behind or inside Nuem, movement keys follow the camera.
 * **Debug Tools**:
   * `F`: FPS meter (in HD it also shows the auto-quality level, which drops a step whenever the game runs under 50 FPS for 2s).
   * `P`: Audit on-screen palette (12-bit mode).
@@ -181,7 +181,7 @@ FOOTBALL/
 ## 🗺️ Roadmap & Commercial Expansion
 
 * [ ] **Clash Minigame**: Split-screen button mash/timing clash on tied rolls.
-* [x] **Roster Expansion**: Thunder (⚡), Water (💧) and Frost (❄️) fighters (Raijin, Aoi, Fubuki) with a title-screen fighter select.
+* [x] **Roster Expansion**: Thunder (⚡), Water (💧) and Frost (❄️) fighters (Num, Sari, Volt) with a title-screen fighter select.
 * [ ] **Roguelite Tournament Mode**: Single-player cup with artifact drafts and skill unlocks (*Balatro* x *Soccer*).
 * [x] **Online 1v1**: room codes, host-streamed WebRTC play and a Node room server (see *Online 1v1* below). The guest can use the keyboard or the on-screen touch stick.
 * [ ] **Gamepad Support**: Standard Gamepad API integration for Xbox, PlayStation, and 8BitDo controllers.

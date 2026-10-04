@@ -1,4 +1,4 @@
-"""Haru Kagari (#9, Akebono FC) - built from the character sheet. Run headless:
+"""Nuem (#9, Akebono FC) - built from the character sheet. Run headless:
     bash run_blender.sh build_haru.py
 Writes ../haru.blend. Metres, +X forward, +Y = his left, Z up (a glTF export turns this into the game's axes).
 """
