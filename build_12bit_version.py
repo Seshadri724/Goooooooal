@@ -159,10 +159,10 @@ const BASIC = {
   block:   { name: 'Tackle',       kind: 'block',   elem: 'none', power: 15, tp: 0 },
 };
 const HARU = {
-  id: 'haru', name: 'Nuem', short: 'NUEM', team: 'Akebono FC', role: 'Striker', elem: 'flame', num: 9,
+  id: 'haru', name: 'Nuem', short: 'NUEM', team: 'Ember Hill FC', role: 'Striker', elem: 'flame', num: 9,
   jersey: '#f2f4f8', trim: '#e0402a', hair: '#c41f2e', hairHi: '#ff7a52', brow: '#6e0e17', skin: '#f3caa4', eye: '#f6b92f',
   stats: { kick: 80, dribble: 70, block: 56, speed: 74 }, maxTP: 120,
-  bio: 'Akebono’s first-year striker. Huge shots, thin defence. Gale Sweep and Tempest Drive are his only answers to Stone.',
+  bio: 'Ember Hill’s first-year striker. Huge shots, thin defence. Gale Sweep and Tempest Drive are his only answers to Stone.',
   moves: [
     { name: 'Crimson Meteor', kind: 'shot',    elem: 'flame', power: 62, tp: 45 },
     { name: 'Tempest Drive',  kind: 'shot',    elem: 'gale',  power: 44, tp: 26 },
@@ -171,10 +171,10 @@ const HARU = {
   ],
 };
 const JIN = {
-  id: 'jin', name: 'Some', short: 'SOME', team: 'Tetsuzan Academy', role: 'Libero', elem: 'stone', num: 5,
+  id: 'jin', name: 'Some', short: 'SOME', team: 'Ironcrest Academy', role: 'Libero', elem: 'stone', num: 5,
   jersey: '#252a35', trim: '#e0a93f', hair: '#b3bcc9', hairHi: '#eef2f7', brow: '#5d6573', skin: '#e6b890', eye: '#e8962a',
   stats: { kick: 76, dribble: 64, block: 76, speed: 68 }, maxTP: 120,
-  bio: 'Tetsuzan’s captain. Reads dribbles early and walls off the shooting lane. Granite Guard shuts down Flame.',
+  bio: 'Ironcrest’s captain. Reads dribbles early and walls off the shooting lane. Granite Guard shuts down Flame.',
   moves: [
     { name: 'Tectonic Hammer', kind: 'shot',    elem: 'stone', power: 60, tp: 45 },
     { name: 'Shard Spiral',    kind: 'shot',    elem: 'gale',  power: 44, tp: 26 },
@@ -204,13 +204,13 @@ function mkPlayer(ch, team, human) { return { ch, team, human, x: 0, y: 0, vx: 0
 const haru = mkPlayer(HARU, 0, true), jin = mkPlayer(JIN, 1, false);
 const players = [haru, jin];
 const keepers = [
-  { team: 0, name: 'AKEBONO GK', x: F.x0 + 14, y: CY, rating: 60, color: '#7fd18b', dive: 0, dd: 1 },
-  { team: 1, name: 'TETSUZAN GK', x: F.x1 - 14, y: CY, rating: 60, color: '#8b7bff', dive: 0, dd: 1 },
+  { team: 0, name: 'EMBER GK', x: F.x0 + 14, y: CY, rating: 60, color: '#7fd18b', dive: 0, dd: 1 },
+  { team: 1, name: 'IRONCREST GK', x: F.x1 - 14, y: CY, rating: 60, color: '#8b7bff', dive: 0, dd: 1 },
 ];"""
 
 new_js_setup = """(() => {
 'use strict';
-// 12-Bit Amiga Pipeline Constants:
+// 12-Bit Retro Pipeline Constants:
 // Internal resolution: 320x180 (16:9, exactly 1/3 of 960x540 game space).
 // Game logic coordinates remain untouched in 960x540, divided by 3 only during rendering.
 const LW = 320, LH = 180;
@@ -247,10 +247,10 @@ const BASIC = {
   block:   { name: 'Tackle',       kind: 'block',   elem: 'none', power: 15, tp: 0 },
 };
 const HARU = {
-  id: 'haru', name: 'Nuem', short: 'NUEM', team: 'Akebono FC', role: 'Striker', elem: 'flame', num: 9,
+  id: 'haru', name: 'Nuem', short: 'NUEM', team: 'Ember Hill FC', role: 'Striker', elem: 'flame', num: 9,
   jersey: '#def', trim: '#e42', hair: '#c22', hairHi: '#f75', brow: '#611', skin: '#fba', eye: '#fb3',
   stats: { kick: 80, dribble: 70, block: 56, speed: 74 }, maxTP: 120,
-  bio: 'Akebono’s first-year striker. Huge shots, thin defence. Gale Sweep and Tempest Drive are his only answers to Stone.',
+  bio: 'Ember Hill’s first-year striker. Huge shots, thin defence. Gale Sweep and Tempest Drive are his only answers to Stone.',
   moves: [
     { name: 'Crimson Meteor', kind: 'shot',    elem: 'flame', power: 62, tp: 45 },
     { name: 'Tempest Drive',  kind: 'shot',    elem: 'gale',  power: 44, tp: 26 },
@@ -259,10 +259,10 @@ const HARU = {
   ],
 };
 const JIN = {
-  id: 'jin', name: 'Some', short: 'SOME', team: 'Tetsuzan Academy', role: 'Libero', elem: 'stone', num: 5,
+  id: 'jin', name: 'Some', short: 'SOME', team: 'Ironcrest Academy', role: 'Libero', elem: 'stone', num: 5,
   jersey: '#233', trim: '#b83', hair: '#789', hairHi: '#cdf', brow: '#456', skin: '#eb9', eye: '#e92',
   stats: { kick: 76, dribble: 64, block: 76, speed: 68 }, maxTP: 120,
-  bio: 'Tetsuzan’s captain. Reads dribbles early and walls off the shooting lane. Granite Guard shuts down Flame.',
+  bio: 'Ironcrest’s captain. Reads dribbles early and walls off the shooting lane. Granite Guard shuts down Flame.',
   moves: [
     { name: 'Tectonic Hammer', kind: 'shot',    elem: 'stone', power: 60, tp: 45 },
     { name: 'Shard Spiral',    kind: 'shot',    elem: 'gale',  power: 44, tp: 26 },
@@ -299,8 +299,8 @@ function mkPlayer(ch, team, human) { return { ch, team, human, x: 0, y: 0, vx: 0
 const haru = mkPlayer(HARU, 0, true), jin = mkPlayer(JIN, 1, false);
 const players = [haru, jin];
 const keepers = [
-  { team: 0, name: 'AKEBONO GK', x: F.x0 + 14, y: CY, rating: 60, color: '#4b6', dive: 0, dd: 1 },
-  { team: 1, name: 'TETSUZAN GK', x: F.x1 - 14, y: CY, rating: 60, color: '#76d', dive: 0, dd: 1 },
+  { team: 0, name: 'EMBER GK', x: F.x0 + 14, y: CY, rating: 60, color: '#4b6', dive: 0, dd: 1 },
+  { team: 1, name: 'IRONCREST GK', x: F.x1 - 14, y: CY, rating: 60, color: '#76d', dive: 0, dd: 1 },
 ];"""
 assert old_js_setup in text, "old_js_setup not found"
 text = text.replace(old_js_setup, new_js_setup)

@@ -1,7 +1,7 @@
 # ⚽ Blaze vs Bedrock
 
 > **High-Octane Retro Anime Soccer Duel Engine with Triple-Pipeline Rendering**  
-> *Captain Tsubasa* & *Inazuma Eleven* meets *Street Fighter* and *Mario Strikers* in a pure, zero-dependency HTML5/JavaScript experience.
+> Elemental super-shots, time-stop duels and one-on-one football, in a pure, zero-dependency HTML5/JavaScript experience.
 
 ---
 
@@ -9,7 +9,7 @@
 
 **Blaze vs Bedrock** is an arcade soccer duel game that blends real-time pitch control with tactical, time-stop anime showdowns. When players collide, time freezes, initiating a mind-game duel where element advantages, stats, and Tension Points (TP) determine who blasts the ball toward the net.
 
-The project features a **Triple-Pipeline Graphics Engine**, allowing instant switching between retro Amiga pixel aesthetics, 960x540 Neo-Geo arcade sprites, and real-time 64-bit 3D WebGL action.
+The project features a **Triple-Pipeline Graphics Engine**, allowing instant switching between retro pixel aesthetics, 960x540 arcade sprites, and real-time 64-bit 3D WebGL action.
 
 ---
 
@@ -22,7 +22,7 @@ The project features a **Triple-Pipeline Graphics Engine**, allowing instant swi
   * 🪨 **Stone** beats 🔥 **Flame**
   * Advantage grants a **+20% power boost**, while matching a move to the character's innate element yields an extra **+10% signature bonus**.
 * **Triple-Pipeline Rendering Engine**:
-  * **12-Bit Amiga Pipeline**: 320x180 internal canvas scaled up with authentic 32-color palette quantization, raster dithering, and `Press Start 2P` pixel typography.
+  * **12-Bit Retro Pipeline**: 320x180 internal canvas scaled up with authentic 32-color palette quantization, raster dithering, and `Press Start 2P` pixel typography.
   * **32-Bit Arcade Pipeline**: Native 960x540 canvas with multi-layered motion trails, particle sparks, gradient auras, and dynamic HUD.
   * **64-Bit 3D WebGL Pipeline**: Built-in Three.js pitch, 3D stadium lights, player billboard meshes, dynamic action camera tracking, and dramatic 3D cutscenes.
 * **Signature Special Shots**:
@@ -59,11 +59,11 @@ The project features a **Triple-Pipeline Graphics Engine**, allowing instant swi
 
 | Player | Team | Role | Element | Stats (Kick/Dribble/Block/Spd) | Signature Moves |
 | :--- | :--- | :--- | :---: | :---: | :--- |
-| **Nuem** | Akebono FC | Striker (#9) | 🔥 Flame | 80 / 70 / 56 / 74 | *Crimson Meteor*, *Tempest Drive*, *Blaze Step*, *Gale Sweep*, *Phantom Barrage*, *Photon Laser*, *Hellfire Missile*, *Thunderbolt Barrage*, *Gatling Volley*, *Avalanche Snowball*, *Hydro Cannon*, *Imperial Dragon*, *Colossus Lion*, *Sword Storm*, *Verdant Tempest*, *Zigzag Comet* |
-| **Some** | Tetsuzan Academy | Libero (#5) | 🪨 Stone | 76 / 64 / 76 / 68 | *Tectonic Hammer*, *Shard Spiral*, *Granite Guard*, *Mirage Feint* |
-| **Num** | Raikou Tech | Winger (#11) | ⚡ Thunder | 74 / 78 / 50 / 88 | *Volt Strike*, *Static Dash*, *Shock Wall*, *Thunderbolt Barrage*, *Zigzag Comet*, *Gatling Volley* |
-| **Volt** | Tetsuzan Academy | Midfielder (#8) | ❄️ Frost | 70 / 72 / 74 / 66 | *Glacier Lance*, *Ice Slide*, *Frost Wall*, *Avalanche Snowball*, *Sword Storm*, *Zigzag Comet* |
-| **Sari** | Akebono FC | Playmaker (#10) | 💧 Water | 72 / 82 / 62 / 72 | *Tidal Burst*, *Current Glide*, *Undertow*, *Hydro Cannon*, *Imperial Dragon*, *Verdant Tempest* |
+| **Nuem** | Ember Hill FC | Striker (#9) | 🔥 Flame | 80 / 70 / 56 / 74 | *Crimson Meteor*, *Tempest Drive*, *Blaze Step*, *Gale Sweep*, *Phantom Barrage*, *Photon Laser*, *Hellfire Missile*, *Thunderbolt Barrage*, *Gatling Volley*, *Avalanche Snowball*, *Hydro Cannon*, *Imperial Dragon*, *Colossus Lion*, *Sword Storm*, *Verdant Tempest*, *Zigzag Comet* |
+| **Some** | Ironcrest Academy | Libero (#5) | 🪨 Stone | 76 / 64 / 76 / 68 | *Tectonic Hammer*, *Shard Spiral*, *Granite Guard*, *Mirage Feint* |
+| **Num** | Skyvolt Tech | Winger (#11) | ⚡ Thunder | 74 / 78 / 50 / 88 | *Volt Strike*, *Static Dash*, *Shock Wall*, *Thunderbolt Barrage*, *Zigzag Comet*, *Gatling Volley* |
+| **Volt** | Ironcrest Academy | Midfielder (#8) | ❄️ Frost | 70 / 72 / 74 / 66 | *Glacier Lance*, *Ice Slide*, *Frost Wall*, *Avalanche Snowball*, *Sword Storm*, *Zigzag Comet* |
+| **Sari** | Ember Hill FC | Playmaker (#10) | 💧 Water | 72 / 82 / 62 / 72 | *Tidal Burst*, *Current Glide*, *Undertow*, *Hydro Cannon*, *Imperial Dragon*, *Verdant Tempest* |
 
 Pick your fighter and your rival on the title screen (picking the rival's fighter swaps the two). The keepers belong to the left and right side, so they stay Arju (you) and Rami (AI) whoever plays.
 
@@ -71,8 +71,8 @@ Pick your fighter and your rival on the title screen (picking the rival's fighte
 
 | Keeper | Team | Role | Element | Catch Stat | Signature Save |
 | :--- | :--- | :--- | :---: | :---: | :--- |
-| **Arju** | Akebono FC | Goalkeeper (#1) | 🌪️ Gale | 60 | *Tornado Wall* (Power: 52, TP: 30), *Iron Bulwark* (giant iron shield, Power: 58, TP: 34), *Titan Hands* (two giant hands, Power: 56, TP: 32) |
-| **Rami** | Tetsuzan Academy | Goalkeeper (#1) | 🪨 Stone | 60 | *Bedrock Fortress* (Power: 54, TP: 32), *Iron Bulwark*, *Titan Hands* |
+| **Arju** | Ember Hill FC | Goalkeeper (#1) | 🌪️ Gale | 60 | *Tornado Wall* (Power: 52, TP: 30), *Iron Bulwark* (giant iron shield, Power: 58, TP: 34), *Titan Hands* (two giant hands, Power: 56, TP: 32) |
+| **Rami** | Ironcrest Academy | Goalkeeper (#1) | 🪨 Stone | 60 | *Bedrock Fortress* (Power: 54, TP: 32), *Iron Bulwark*, *Titan Hands* |
 
 ---
 
@@ -85,7 +85,7 @@ Pick your fighter and your rival on the title screen (picking the rival's fighte
   * *Without ball*: Performs a high-speed dash tackle.
 * **Duel Selection**: `1`, `2`, `3`, `4` or direct mouse click on move cards.
 * **Skip Cutscenes**: `Space` or mouse click.
-* **Engine Switching**: `T` (cycles between 32-Bit Arcade ➔ 64-Bit 3D ➔ HD 3D ➔ 12-Bit Amiga).
+* **Engine Switching**: `T` (cycles between 32-Bit Arcade ➔ 64-Bit 3D ➔ HD 3D ➔ 12-Bit Retro).
 * **HD Lighting**: `G` (HD 3D only) switches between a night match and golden hour.
 * **Camera views**: `C` / `Shift+C` (3D modes only) cycles Broadcast, Cinematic, Follow, Over-the-shoulder, Orbit (drag, `Q`/`E`, wheel), First-person, Helmet HUD, Cockpit, Fixed angles, Isometric, Top-down, CCTV and Photo mode. Photo mode freezes the match: `WASD` to fly, `Q`/`E` to go down/up, drag to look, wheel to zoom, `Space` to save a PNG. In the views that sit behind or inside Nuem, movement keys follow the camera.
 * **Debug Tools**:
@@ -166,7 +166,7 @@ python -m http.server 8000
 FOOTBALL/
 ├── Blaze vs Bedrock.html       # Primary complete single-file game bundle
 ├── Blaze vs Bedrock.backup.html# Baseline reference backup
-├── build_12bit_version.py      # Build script for 12-bit Amiga retro quantization pipeline
+├── build_12bit_version.py      # Build script for 12-bit Retro retro quantization pipeline
 ├── generate_32bit_game.py      # Generator script uniting 32-bit, 12-bit, and 64-bit engines
 ├── check_file.py               # Quick validation and inspection utility
 ├── assets/gk-*.json            # Baked Mixamo goalkeeper clips: catch, dive, sidestep, dropkick (limb directions per frame)
