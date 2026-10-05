@@ -63,14 +63,14 @@ new_stage = """.stage{position:relative;width:100%;max-width:100%;aspect-ratio:1
 assert old_stage in text, "old_stage not found"
 text = text.replace(old_stage, new_stage)
 
-# 4. Header Tools: Add Mode Toggle Button (32-Bit Arcade / 12-Bit Amiga) + 12-Bit Palette & Mock Buttons
+# 4. Header Tools: Add Mode Toggle Button (32-Bit Arcade / 12-Bit Retro) + 12-Bit Palette & Mock Buttons
 old_tools = """    <div class="tools">
       <button type="button" class="btn" id="muteBtn" aria-pressed="false">Sound: on</button>
       <button type="button" class="btn" id="restartBtn">Restart match</button>
     </div>"""
 
 new_tools = """    <div class="tools">
-      <button type="button" class="btn" id="modeBtn" style="color:var(--tension);border-color:var(--tension);font-weight:700" title="Switch between 32-Bit Arcade and 12-Bit Amiga Mode">Mode: 32-Bit Arcade</button>
+      <button type="button" class="btn" id="modeBtn" style="color:var(--tension);border-color:var(--tension);font-weight:700" title="Switch between 32-Bit Arcade and 12-Bit Retro Mode">Mode: 32-Bit Arcade</button>
       <button type="button" class="btn" id="muteBtn" aria-pressed="false">Sound: on</button>
       <button type="button" class="btn" id="restartBtn">Restart match</button>
       <button type="button" class="btn" id="palBtn" style="display:none" title="Audit on-screen palette (32 colors max)">Palette: 32c [P]</button>
@@ -93,7 +93,7 @@ idx_script_end = text.find("})();\n</script>")
 assert idx_script_start != -1 and idx_script_end != -1, "Script boundaries not found"
 
 js_code = """// ============================================================================
-// DUAL-PIPELINE ENGINE: 32-BIT ARCADE (DEFAULT) & 12-BIT AMIGA RETRO
+// DUAL-PIPELINE ENGINE: 32-BIT ARCADE (DEFAULT) & 12-BIT RETRO
 // ============================================================================
 let engineMode = '32bit'; // '32bit' (default) or '12bit'
 let mockMode = false;
@@ -106,7 +106,7 @@ const GY0 = CY - 60, GY1 = CY + 60;
 const GOALS_TO_WIN = 3;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// 12-Bit Amiga Pipeline Constants (320x180 internal, 1/3 scale)
+// 12-Bit Retro Pipeline Constants (320x180 internal, 1/3 scale)
 const LW = 320, LH = 180;
 const PALETTE_32 = [
   '#000', '#012', '#123', '#235', '#456', '#89a', '#def', '#fff',
@@ -134,10 +134,10 @@ const BASIC = {
   block:   { name: 'Tackle',       kind: 'block',   elem: 'none', power: 15, tp: 0 },
 };
 const HARU = {
-  id: 'haru', name: 'Nuem', short: 'NUEM', team: 'Akebono FC', role: 'Striker', elem: 'flame', num: 9,
+  id: 'haru', name: 'Nuem', short: 'NUEM', team: 'Ember Hill FC', role: 'Striker', elem: 'flame', num: 9,
   jersey: '#f2f4f8', trim: '#e0402a', hair: '#c41f2e', hairHi: '#ff7a52', brow: '#6e0e17', skin: '#f3caa4', eye: '#f6b92f',
   stats: { kick: 80, dribble: 70, block: 56, speed: 74 }, maxTP: 120,
-  bio: 'Akebono’s first-year striker. Huge shots, thin defence. Gale Sweep and Tempest Drive are his only answers to Stone.',
+  bio: 'Ember Hill’s first-year striker. Huge shots, thin defence. Gale Sweep and Tempest Drive are his only answers to Stone.',
   moves: [
     { name: 'Crimson Meteor', kind: 'shot',    elem: 'flame', power: 62, tp: 45 },
     { name: 'Tempest Drive',  kind: 'shot',    elem: 'gale',  power: 44, tp: 26 },
@@ -146,10 +146,10 @@ const HARU = {
   ],
 };
 const JIN = {
-  id: 'jin', name: 'Some', short: 'SOME', team: 'Tetsuzan Academy', role: 'Libero', elem: 'stone', num: 5,
+  id: 'jin', name: 'Some', short: 'SOME', team: 'Ironcrest Academy', role: 'Libero', elem: 'stone', num: 5,
   jersey: '#252a35', trim: '#e0a93f', hair: '#b3bcc9', hairHi: '#eef2f7', brow: '#5d6573', skin: '#e6b890', eye: '#e8962a',
   stats: { kick: 76, dribble: 64, block: 76, speed: 68 }, maxTP: 120,
-  bio: 'Tetsuzan’s captain. Reads dribbles early and walls off the shooting lane. Granite Guard shuts down Flame.',
+  bio: 'Ironcrest’s captain. Reads dribbles early and walls off the shooting lane. Granite Guard shuts down Flame.',
   moves: [
     { name: 'Tectonic Hammer', kind: 'shot',    elem: 'stone', power: 60, tp: 45 },
     { name: 'Shard Spiral',    kind: 'shot',    elem: 'gale',  power: 44, tp: 26 },
@@ -185,8 +185,8 @@ function mkPlayer(ch, team, human) { return { ch, team, human, x: 0, y: 0, vx: 0
 const haru = mkPlayer(HARU, 0, true), jin = mkPlayer(JIN, 1, false);
 const players = [haru, jin];
 const keepers = [
-  { team: 0, name: 'AKEBONO GK', x: F.x0 + 14, y: CY, rating: 60, color: '#4dd684', dive: 0, dd: 1 },
-  { team: 1, name: 'TETSUZAN GK', x: F.x1 - 14, y: CY, rating: 60, color: '#7b6dff', dive: 0, dd: 1 },
+  { team: 0, name: 'EMBER GK', x: F.x0 + 14, y: CY, rating: 60, color: '#4dd684', dive: 0, dd: 1 },
+  { team: 1, name: 'IRONCREST GK', x: F.x1 - 14, y: CY, rating: 60, color: '#7b6dff', dive: 0, dd: 1 },
 ];
 const ball = { x: CX, y: CY, vx: 0, vy: 0, owner: null, shot: null, spin: 0, noPick: null };
 let trail = [], keeperHold = null, score = [0, 0], mode = 'title', duelCd = 0, matchId = 0;
@@ -360,7 +360,7 @@ function placeKickoff(team) {
 }
 async function kickoff(team) {
   const id = matchId; placeKickoff(team); mode = 'freeze'; sfx('whistle');
-  await timed('banner', { text: 'KICK OFF', sub: team === 0 ? 'Akebono ball' : 'Tetsuzan ball', color: '#ffe14d', big: false }, 1000);
+  await timed('banner', { text: 'KICK OFF', sub: team === 0 ? 'Ember Hill ball' : 'Ironcrest ball', color: '#ffe14d', big: false }, 1000);
   if (id !== matchId) return;
   duelCd = 1; aiShotCd = 1.2; mode = 'play';
 }
@@ -377,7 +377,7 @@ function startMatch(data) {
 function endMatch(team) {
   mode = 'over';
   $('overTitle').innerHTML = team === 0 ? '<span class="a">Nuem</span> wins' : '<span class="b">Some</span> wins';
-  $('overSub').textContent = `${score[0]} – ${score[1]}. ` + (team === 0 ? 'Akebono’s Flame broke the wall.' : 'Tetsuzan’s Stone held firm. Try baiting Granite Guard before you shoot.');
+  $('overSub').textContent = `${score[0]} – ${score[1]}. ` + (team === 0 ? 'Ember Hill’s Flame broke the wall.' : 'Ironcrest’s Stone held firm. Try baiting Granite Guard before you shoot.');
   overScreen.hidden = false; sfx('whistle');
   $('againBtn').focus({ preventScroll: true });
 }
@@ -1220,7 +1220,7 @@ function bust(c, ch, x, y, s, o = {}) {
 }
 
 // ============================================================================
-// 12-BIT AMIGA RETRO PIPELINE RENDERING
+// 12-BIT RETRO PIPELINE RENDERING
 // ============================================================================
 const bg12 = document.createElement('canvas'); bg12.width = LW; bg12.height = LH;
 function drawStatic12() {
@@ -1491,7 +1491,7 @@ function draw(now) {
     if (ov.banner) drawBanner32(ov.banner, now);
     if (ov.cut) drawCut32(ov.cut, now);
   } else {
-    // 12-Bit Amiga Pipeline Rendering (320x180 scaled to cv)
+    // 12-Bit Retro Pipeline Rendering (320x180 scaled to cv)
     if (mockMode) {
       renderMockFrame();
     } else {
@@ -1561,15 +1561,15 @@ function setEngineMode(m) {
   engineMode = m;
   const is32 = m === '32bit';
   document.body.classList.toggle('mode-12bit', !is32);
-  $('modeBtn').textContent = is32 ? 'Mode: 32-Bit Arcade' : 'Mode: 12-Bit Amiga';
+  $('modeBtn').textContent = is32 ? 'Mode: 32-Bit Arcade' : 'Mode: 12-Bit Retro';
   $('modeBtn').style.color = is32 ? 'var(--tension)' : 'var(--flame)';
   $('modeBtn').style.borderColor = is32 ? 'var(--tension)' : 'var(--flame)';
   $('palBtn').style.display = is32 ? 'none' : 'inline-block';
   $('mockBtn').style.display = is32 ? 'inline-block' : 'none';
-  $('kickerTag').textContent = is32 ? '32-Bit Arcade Edition · 1v1 duel prototype' : '12-Bit Amiga Retro Edition · 1v1 duel prototype';
+  $('kickerTag').textContent = is32 ? '32-Bit Arcade Edition · 1v1 duel prototype' : '12-Bit Retro Edition · 1v1 duel prototype';
   resize();
   paintPortraits();
-  addText(CX, CY - 30, is32 ? '32-BIT ARCADE TRUECOLOR' : '12-BIT AMIGA RETRO', is32 ? '#35d6c0' : '#ffe14d');
+  addText(CX, CY - 30, is32 ? '32-BIT ARCADE TRUECOLOR' : '12-BIT RETRO', is32 ? '#35d6c0' : '#ffe14d');
 }
 
 // ---------- input ----------
@@ -1691,4 +1691,4 @@ text = text[:idx_script_start] + js_code + text[idx_script_end + len("})();\n</s
 with open(r"c:\SESHU\PROJECTS\OTHER PROJECTS\FOOTBALL\Blaze vs Bedrock.html", "w", encoding="utf-8") as f:
     f.write(text)
 
-print("SUCCESS: 32-bit Arcade & 12-bit Amiga dual-engine built and saved!")
+print("SUCCESS: 32-bit Arcade & 12-bit Retro dual-engine built and saved!")
