@@ -137,10 +137,40 @@ Then navigate to `http://localhost:8000/Blaze%20vs%20Bedrock.html`.
 
 The host runs the real game and streams its canvas and audio to the guest over WebRTC. The guest sends keys and move picks back and plays the right-hand fighter. `server/` only pairs players by room code and relays signaling, input and menu picks.
 
+Live: **[blaze-game.onrender.com](https://blaze-game.onrender.com)** (free plan: the first connect can take about a minute while the server wakes).
+
+### Runtime architecture
+
+```mermaid
+flowchart LR
+  subgraph Host["Host browser (runs the real game)"]
+    G[Game loop + physics + AI] --> C[Canvas + Web Audio]
+  end
+  subgraph Guest["Guest browser"]
+    V[Video player] --- K[Keys / touch stick / move menu]
+  end
+  subgraph Render["Render (free plan)"]
+    S["Room server · Node + ws<br/>room codes · relay · rate limit · origin allow-list"]
+    P["Static site<br/>blaze-game.onrender.com"]
+  end
+  C -->|"WebRTC video + audio (peer-to-peer, STUN)"| V
+  Host <-->|"WebSocket: room, signaling, menus"| S
+  K -->|"WebSocket: input + move picks"| S
+  P -.->|serves the page| Host & Guest
+  S -->|"/healthz (public) · /metrics (bearer token)"| O[(Monitoring)]
 ```
-Host browser ──WebRTC video+audio──► Guest browser
-     ▲  └──────── WebSocket ────────┐     │
-     └─ input + menu picks ◄── room server (server/) ◄┘   /healthz  /metrics
+
+### Delivery pipeline
+
+```mermaid
+flowchart LR
+  A[Push / PR] --> T["test<br/>node --test · npm audit"]
+  T --> I["image<br/>Docker build · Trivy scan · smoke test"]
+  I -->|main only| R[Push to GHCR]
+  R --> D["deploy<br/>Render deploy hook pinned to the commit"]
+  D --> H{"/healthz reports<br/>that commit?"}
+  H -->|yes| L[Live]
+  H -->|no, after 15 min| F[Job fails]
 ```
 
 Run it locally (two terminals, then open the game in two tabs and use **Play online 1v1**):
@@ -154,7 +184,7 @@ python -m http.server 8000
 ```
 
 * **Config:** `?server=wss://host` overrides the server URL; `SERVER` and the STUN list sit at the top of `online.js`. On the server, `PORT` and `ALLOWED_ORIGINS` (comma-separated) are env vars.
-* **Ops:** `GET /healthz`, Prometheus text at `GET /metrics` (rooms, connections, relayed/dropped messages, bytes). Per-socket rate limit, 8 KB message cap, origin allow-list, ping/pong reaping of dead sockets.
+* **Ops:** `GET /healthz` (public, reports the deployed commit), Prometheus text at `GET /metrics` (needs `Authorization: Bearer $METRICS_TOKEN` when that env var is set; Render generates it) (rooms, connections, relayed/dropped messages, bytes). Per-socket rate limit, 8 KB message cap, origin allow-list, ping/pong reaping of dead sockets.
 * **CI/CD:** `.github/workflows/ci.yml` runs tests and `npm audit`, builds the image, scans it with Trivy, smoke-tests the container, pushes to GHCR on `main`, then deploys to Render's free plan ([render.yaml](render.yaml)) through a deploy hook pinned to the tested commit and waits until `/healthz` reports that commit. Enable it with the secret `RENDER_DEPLOY_HOOK_URL` and the variables `RENDER_URL` and `DEPLOY_RENDER=true`. The free plan sleeps after 15 idle minutes; the client wakes it before connecting (about a minute).
 * **Known limits:** STUN only (some networks need a TURN server); rooms live in one process's memory; the guest feels host round-trip lag and the host could cheat, which is fine for friends.
 
@@ -186,3 +216,9 @@ FOOTBALL/
 * [x] **Online 1v1**: room codes, host-streamed WebRTC play and a Node room server (see *Online 1v1* below). The guest can use the keyboard or the on-screen touch stick.
 * [ ] **Gamepad Support**: Standard Gamepad API integration for Xbox, PlayStation, and 8BitDo controllers.
 * [ ] **Steam & Portal Release**: Exporting for Poki / CrazyGames web portals and packaging for Steam via Tauri / Electron.
+
+---
+
+## 📄 License
+
+Copyright © 2026 Seshadri. All rights reserved. This is proprietary software: see [LICENSE](LICENSE). Third-party libraries (three.js, GSAP, Google Fonts) keep their own licenses.

@@ -2,6 +2,7 @@
 // The host browser runs the game and streams video over WebRTC; this server only pairs two players by room code,
 // relays signaling / input / menu picks between them, and exposes /healthz and /metrics for ops.
 import http from 'node:http';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 
@@ -15,7 +16,10 @@ export function createServer({
   maxMsgBytes = 8192,
   msgsPerSec = 120, // ponytail: fixed 1s window per socket; token bucket if bursts matter
   origins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean),
+  metricsToken = process.env.METRICS_TOKEN || '', // set in production: /metrics then needs `Authorization: Bearer <token>`
 } = {}) {
+  const sha = s => createHash('sha256').update(s).digest(); // equal-length digests for a constant-time compare
+  const metricsAllowed = req => !metricsToken || timingSafeEqual(sha(req.headers.authorization || ''), sha(`Bearer ${metricsToken}`));
   const rooms = new Map(); // code -> { host, guest }
   const m = { created: 0, joined: 0, relayed: 0, dropped: 0, bytes: 0, rejected: 0 };
   const started = Date.now();
@@ -34,7 +38,9 @@ export function createServer({
 
   const server = http.createServer((req, res) => {
     if (req.url === '/healthz') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ ok: true, rooms: rooms.size, version: VERSION })); }
-    if (req.url === '/metrics') { res.writeHead(200, { 'content-type': 'text/plain; version=0.0.4' }); return res.end(metrics()); }
+    if (req.url === '/metrics') {
+      if (!metricsAllowed(req)) { res.writeHead(401, { 'www-authenticate': 'Bearer' }); return res.end(); }
+      res.writeHead(200, { 'content-type': 'text/plain; version=0.0.4' }); return res.end(metrics()); }
     res.writeHead(404); res.end();
   });
   const wss = new WebSocketServer({ server, maxPayload: maxMsgBytes });
