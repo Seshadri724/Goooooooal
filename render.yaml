@@ -14,6 +14,8 @@ services:
     envVars:
       - key: ALLOWED_ORIGINS # comma-separated origins allowed to open a WebSocket, e.g. https://blaze-game.onrender.com
         sync: false
+      - key: METRICS_TOKEN # Render generates a random value; /metrics then requires `Authorization: Bearer <value>`
+        generateValue: true
 
   # The game page (free static site). Publishes only the files the page loads at runtime, not the renders/.blend sources.
   - name: blaze-game

@@ -12,7 +12,7 @@ const next = ws => new Promise(res => (ws.q.length ? res(ws.q.shift()) : ws.w.pu
 const J = o => JSON.stringify(o);
 
 test('create, join, relay, leave, metrics, limits', async () => {
-  const s = await createServer({ port: 0, msgsPerSec: 5 });
+  const s = await createServer({ port: 0, msgsPerSec: 5, metricsToken: '' });
   const host = await open(s.port), guest = await open(s.port);
 
   host.send(J({ t: 'create' }));
@@ -48,5 +48,17 @@ test('create, join, relay, leave, metrics, limits', async () => {
   let last; do { last = await next(host); } while (last.t === 'in'); // skip the flood messages that got under the limit
   assert.deepEqual(last, { t: 'left' });
   await new Promise(r => setTimeout(r, 50)); assert.equal(s.rooms.size, 0);
+  await s.close();
+});
+
+test('/metrics needs the bearer token when one is set; /healthz stays public', async () => {
+  const s = await createServer({ port: 0, metricsToken: 's3cret' });
+  const get = (path, auth) => fetch(`http://127.0.0.1:${s.port}${path}`, auth ? { headers: { authorization: auth } } : {});
+  assert.equal((await get('/metrics')).status, 401);
+  assert.equal((await get('/metrics', 'Bearer wrong')).status, 401);
+  assert.equal((await get('/metrics', 's3cret')).status, 401); // scheme required
+  const ok = await get('/metrics', 'Bearer s3cret');
+  assert.equal(ok.status, 200); assert.match(await ok.text(), /blaze_rooms_active 0/);
+  assert.equal((await get('/healthz')).status, 200);
   await s.close();
 });

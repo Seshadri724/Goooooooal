@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1060" viewBox="0 0 1600 1060" role="img" aria-labelledby="title desc">
+  <title id="title">Blaze vs Bedrock system architecture</title>
+  <desc id="desc">Runtime WebRTC and WebSocket architecture, plus the GitHub Actions container build, scan, publish and Render deployment pipeline.</desc>
+  <defs>
+    <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#101827"/><stop offset="1" stop-color="#0b1220"/></linearGradient>
+    <linearGradient id="orange" x2="1" y2="1"><stop stop-color="#ff9b42"/><stop offset="1" stop-color="#ff5b4d"/></linearGradient>
+    <linearGradient id="blue" x2="1" y2="1"><stop stop-color="#56c5ff"/><stop offset="1" stop-color="#6478ff"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#030712" flood-opacity=".45"/></filter>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#69bfff"/></marker>
+    <marker id="arrowOrange" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#ff9850"/></marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#5de0a1"/></marker>
+    <style>
+      text{font-family:Inter,Segoe UI,Arial,sans-serif;fill:#eef3fb}.muted{fill:#9aabc1}.tiny{font-size:13px}.small{font-size:15px}.body{font-size:17px}.head{font-size:21px;font-weight:700}.title{font-size:34px;font-weight:800;letter-spacing:-.4px}.section{font-size:14px;font-weight:800;letter-spacing:1.8px;fill:#a9bad0}.tag{font-size:13px;font-weight:700;letter-spacing:.6px}.mono{font-family:Consolas,monospace;font-size:14px}
+      .panel{fill:#151f30;stroke:#2b3a51;stroke-width:1.5}.inner{fill:#1a273a;stroke:#33465f;stroke-width:1.2}.lineBlue{stroke:#69bfff;stroke-width:3;fill:none;marker-end:url(#arrowBlue)}.lineOrange{stroke:#ff9850;stroke-width:3;fill:none;marker-end:url(#arrowOrange)}.lineGreen{stroke:#5de0a1;stroke-width:3;fill:none;marker-end:url(#arrowGreen)}
+    </style>
+  </defs>
+  <rect width="1600" height="1060" fill="url(#bg)"/>
+  <circle cx="1460" cy="80" r="200" fill="#ff7a45" opacity=".045"/><circle cx="110" cy="930" r="260" fill="#568bff" opacity=".045"/>
+
+  <text x="70" y="64" class="tag" fill="#ff9954">BLAZE VS BEDROCK</text>
+  <text x="70" y="111" class="title">System architecture</text>
+  <text x="70" y="143" class="body muted">Browser game • WebRTC media • WebSocket coordination • automated container delivery</text>
+
+  <text x="70" y="193" class="section">1  ·  ONLINE MATCH RUNTIME</text>
+  <rect x="60" y="212" width="1480" height="445" rx="22" class="panel" filter="url(#shadow)"/>
+
+  <!-- Player browser cards -->
+  <rect x="95" y="270" width="390" height="285" rx="18" class="inner"/>
+  <rect x="95" y="270" width="390" height="8" rx="4" fill="url(#orange)"/>
+  <text x="125" y="315" class="tag" fill="#ffad6f">PLAYER 1 · HOST</text>
+  <text x="125" y="351" class="head">Browser game</text>
+  <text x="125" y="382" class="body muted">Blaze vs Bedrock + online.js</text>
+  <rect x="125" y="405" width="330" height="52" rx="10" fill="#2b2730" stroke="#6c4a3f"/>
+  <text x="145" y="437" class="small">Runs the authoritative match</text>
+  <text x="125" y="490" class="small">Captures canvas + game audio</text>
+  <text x="125" y="520" class="small">Applies guest inputs and menu picks</text>
+
+  <rect x="1115" y="270" width="390" height="285" rx="18" class="inner"/>
+  <rect x="1115" y="270" width="390" height="8" rx="4" fill="url(#blue)"/>
+  <text x="1145" y="315" class="tag" fill="#82ccff">PLAYER 2 · GUEST</text>
+  <text x="1145" y="351" class="head">Browser game</text>
+  <text x="1145" y="382" class="body muted">Receives host stream + controls right side</text>
+  <rect x="1145" y="405" width="330" height="52" rx="10" fill="#1e2b40" stroke="#3b5e86"/>
+  <text x="1165" y="437" class="small">Renders remote video + audio</text>
+  <text x="1145" y="490" class="small">Sends movement / action input</text>
+  <text x="1145" y="520" class="small">Picks moves in the remote menu</text>
+
+  <!-- Media path -->
+  <path d="M485 356 C650 290 950 290 1115 356" class="lineBlue"/>
+  <text x="800" y="285" class="tag" text-anchor="middle" fill="#82ccff">WEBRTC · DIRECT PEER MEDIA</text>
+  <text x="800" y="310" class="small muted" text-anchor="middle">Canvas video + audio stream</text>
+  <path d="M1115 433 C950 490 650 490 485 433" class="lineBlue" opacity=".75"/>
+  <text x="800" y="475" class="tiny muted" text-anchor="middle">SDP offer/answer + ICE candidates are signaled via the room server</text>
+
+  <!-- Server -->
+  <rect x="635" y="525" width="330" height="105" rx="16" fill="#202b3d" stroke="#63728a" stroke-width="1.4"/>
+  <text x="800" y="558" class="tag" text-anchor="middle" fill="#ffd08b">RENDER · NODE.JS ROOM SERVER</text>
+  <text x="800" y="586" class="small" text-anchor="middle">WebSocket pairing · signaling · input relay</text>
+  <text x="800" y="610" class="tiny muted" text-anchor="middle">In-memory rooms · /healthz · /metrics</text>
+  <path d="M485 541 C535 580 575 580 635 580" class="lineOrange"/>
+  <path d="M1115 541 C1065 580 1025 580 965 580" class="lineOrange"/>
+  <text x="545" y="565" class="tiny" fill="#ffc08a">WSS</text><text x="1042" y="565" class="tiny" fill="#ffc08a">WSS</text>
+
+  <text x="800" y="645" class="tiny muted" text-anchor="middle">The server coordinates the match; WebRTC carries the media stream between browsers.</text>
+
+  <!-- Deployment section -->
+  <text x="70" y="709" class="section">2  ·  CI/CD AND HOSTING</text>
+  <rect x="60" y="728" width="1480" height="258" rx="22" class="panel" filter="url(#shadow)"/>
+
+  <rect x="90" y="790" width="195" height="100" rx="15" class="inner"/>
+  <text x="187" y="827" class="head" text-anchor="middle">GitHub</text>
+  <text x="187" y="856" class="small muted" text-anchor="middle">push / pull request</text>
+
+  <rect x="330" y="780" width="255" height="120" rx="15" class="inner"/>
+  <text x="457" y="816" class="head" text-anchor="middle">GitHub Actions</text>
+  <text x="457" y="845" class="small muted" text-anchor="middle">npm ci · audit · tests</text>
+  <text x="457" y="871" class="small muted" text-anchor="middle">client JS syntax check</text>
+
+  <rect x="630" y="780" width="260" height="120" rx="15" class="inner"/>
+  <text x="760" y="816" class="head" text-anchor="middle">Docker validation</text>
+  <text x="760" y="845" class="small muted" text-anchor="middle">Build image · Trivy scan</text>
+  <text x="760" y="871" class="small muted" text-anchor="middle">Container smoke test</text>
+
+  <rect x="935" y="780" width="245" height="120" rx="15" class="inner"/>
+  <text x="1057" y="816" class="head" text-anchor="middle">GHCR</text>
+  <text x="1057" y="845" class="small muted" text-anchor="middle">Publish image on main</text>
+  <text x="1057" y="871" class="small muted" text-anchor="middle">commit SHA + latest</text>
+
+  <rect x="1225" y="765" width="270" height="150" rx="15" fill="#202b3d" stroke="#63728a" stroke-width="1.2"/>
+  <text x="1360" y="801" class="head" text-anchor="middle">Render</text>
+  <text x="1360" y="832" class="small muted" text-anchor="middle">Docker room server</text>
+  <text x="1360" y="859" class="small muted" text-anchor="middle">Static game site</text>
+  <text x="1360" y="886" class="tiny muted" text-anchor="middle">Server deploy gated by CI config</text>
+
+  <path d="M285 840H330" class="lineGreen"/><path d="M585 840H630" class="lineGreen"/><path d="M890 840H935" class="lineGreen"/><path d="M1180 840H1225" class="lineGreen"/>
+  <text x="800" y="948" class="small muted" text-anchor="middle">After deployment, CI polls /healthz and checks that the running server reports the tested commit.</text>
+
+  <rect x="60" y="1007" width="11" height="11" rx="3" fill="#69bfff"/><text x="80" y="1017" class="tiny muted">WebRTC media</text>
+  <rect x="225" y="1007" width="11" height="11" rx="3" fill="#ff9850"/><text x="245" y="1017" class="tiny muted">WebSocket signaling and controls</text>
+  <rect x="535" y="1007" width="11" height="11" rx="3" fill="#5de0a1"/><text x="555" y="1017" class="tiny muted">CI/CD flow</text>
+  <text x="1540" y="1017" class="tiny muted" text-anchor="end">Architecture inferred from repository source and configuration</text>
+</svg>
