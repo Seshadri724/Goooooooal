@@ -82,15 +82,15 @@ jobs:
           case "$HOOK" in https://api.render.com/deploy/srv-*\?key=*) ;; *)
             echo "::error::RENDER_DEPLOY_HOOK_URL should look like https://api.render.com/deploy/srv-...?key=... (copy it from blaze-duel > Settings > Deploy Hook)"; exit 1;; esac
           echo "service: $(printf '%s' "$HOOK" | sed -E 's|.*/deploy/(srv-[a-z0-9]+).*|\1|')" # the key is never printed
-          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "${HOOK}&ref=${GITHUB_SHA}")
-          echo "deploy ${GITHUB_SHA}: HTTP $code"
+          post() { code=$(curl -sS -o /tmp/r.txt -w '%{http_code}' -X POST "$1"); echo "HTTP $code: $(head -c 300 /tmp/r.txt)"; } # Render's reply is an error text or deploy id, never the key
+          echo -n "deploy ${GITHUB_SHA}: "; post "${HOOK}&ref=${GITHUB_SHA}"
           [ "$code" -lt 300 ] && exit 0
-          if [ "$code" = 404 ]; then # Render: unknown service ID, or a commit it can't see yet; tell them apart
-            code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$HOOK")
-            echo "deploy latest commit on the service's branch: HTTP $code"
-            [ "$code" -lt 300 ] && { echo "::warning::Render could not find commit ${GITHUB_SHA}; deployed the branch's latest commit instead"; exit 0; }
-            echo "::error::404 even without a commit: the hook's service ID is wrong (is it blaze-duel's hook, copied in full?)"
-          fi
+          echo -n "deploy the service branch's latest commit: "; post "$HOOK"
+          [ "$code" -lt 300 ] && { echo "::warning::Render could not use commit ${GITHUB_SHA} (repo link out of date?); deployed the branch's latest commit instead"; exit 0; }
+          case "$code" in
+            404) echo "::error::Render does not recognise this hook: wrong service ID or key. Copy blaze-duel > Settings > Deploy Hook again." ;;
+            *)   echo "::error::Render accepted the hook but refused the deploy (HTTP $code, reason above). Check blaze-duel > Events and that Render's GitHub app can still access this repo." ;;
+          esac
           exit 1
       - name: Wait until the new release is live (fails the job if it never reports this commit)
         env:
