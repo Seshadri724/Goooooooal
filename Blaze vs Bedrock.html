@@ -34,7 +34,7 @@
   </style>
 </head>
 
-<body>
+<body class="cel">
   <title>Blaze vs Bedrock</title>
   <!-- The 3D modes import Three.js and its post-processing addons, which import the bare name 'three'. -->
   <script
@@ -969,6 +969,244 @@
         transition: none
       }
     }
+
+    /* ===== Cel-shaded UI theme (body.cel, toggled by the Style button / [K]; 12-bit keeps its own pixel theme) =====
+       The anime cel look for every panel: thick ink outlines, flat two-tone fills (a hard-edged lighter top band, never a soft
+       gradient), hard offset drop shadows with no blur, halftone dots and speed lines. */
+    body.cel:not(.mode-12bit) {
+      --inkline: #0b0e1a;
+      --cel-sh: 4px 4px 0 var(--inkline);
+      --dots: radial-gradient(rgba(255, 255, 255, .07) 1.2px, transparent 1.7px) 0 0 / 9px 9px;
+      --night: #23305c; /* a mid-tone page, so the ink lines and hard shadows read against it */
+      background: var(--dots), var(--night);
+    }
+
+    html:has(body.cel:not(.mode-12bit)) {
+      background: #23305c
+    }
+
+    body.cel:not(.mode-12bit) .kicker,
+    body.cel:not(.mode-12bit) .foot,
+    body.cel:not(.mode-12bit) .c-team,
+    body.cel:not(.mode-12bit) .stats dt,
+    body.cel:not(.mode-12bit) .moves th {
+      color: #b9c3e0
+    }
+
+    body.cel:not(.mode-12bit) h1 span,
+    body.cel:not(.mode-12bit) .screen h2,
+    body.cel:not(.mode-12bit) .card h3 {
+      -webkit-text-stroke: 2px var(--inkline);
+      paint-order: stroke fill;
+      text-shadow: 3px 3px 0 var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) .screen h2 {
+      -webkit-text-stroke-width: 4px;
+      text-shadow: 6px 6px 0 var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) .btn,
+    body.cel:not(.mode-12bit) .pick button {
+      font-weight: 700;
+      border: 3px solid var(--inkline);
+      border-radius: 7px;
+      background: linear-gradient(#26325c 0 46%, #19223f 46%);
+      box-shadow: 3px 3px 0 var(--inkline);
+      transition: transform .08s, box-shadow .08s;
+    }
+
+    body.cel:not(.mode-12bit) .btn:hover,
+    body.cel:not(.mode-12bit) .pick button:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0 var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) .btn:active,
+    body.cel:not(.mode-12bit) .pick button:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 var(--inkline);
+    }
+
+    /* fighter chips: an element-coloured underside, solid fill when picked */
+    body.cel:not(.mode-12bit) .pick button {
+      box-shadow: inset 0 -4px 0 var(--ec), 3px 3px 0 var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) .pick button[aria-checked="true"] {
+      background: linear-gradient(color-mix(in srgb, var(--ec) 70%, #fff) 0 42%, var(--ec) 42%);
+      color: var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) .stage {
+      border-radius: 14px;
+      box-shadow: 0 0 0 4px var(--inkline), 9px 9px 0 4px var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) .screen {
+      background:
+        repeating-conic-gradient(from 0deg at 50% 42%, rgba(255, 255, 255, .055) 0 2.5deg, transparent 2.5deg 10deg),
+        radial-gradient(ellipse at center, rgba(8, 11, 22, .45), rgba(8, 11, 22, .92));
+    }
+
+    body.cel:not(.mode-12bit) .eyebrow {
+      background: var(--tension);
+      color: var(--inkline);
+      font-weight: 700;
+      padding: 5px 10px;
+      border: 2px solid var(--inkline);
+      box-shadow: 3px 3px 0 var(--inkline);
+      transform: skewX(-10deg);
+    }
+
+    body.cel:not(.mode-12bit) .primary {
+      border: 3px solid var(--inkline);
+      background: linear-gradient(#fff38a 0 44%, var(--tension) 44%);
+      box-shadow: 5px 6px 0 var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) .primary:hover {
+      box-shadow: 6px 8px 0 var(--inkline)
+    }
+
+    body.cel:not(.mode-12bit) .primary:active {
+      box-shadow: 2px 2px 0 var(--inkline)
+    }
+
+    body.cel:not(.mode-12bit) .cmd {
+      border: 4px solid var(--inkline);
+      border-radius: 12px;
+      background: var(--dots), linear-gradient(#18213e 0 34px, #10172d 34px);
+      box-shadow: 7px 7px 0 var(--inkline);
+      backdrop-filter: none;
+    }
+
+    body.cel:not(.mode-12bit) .cmd-head strong {
+      -webkit-text-stroke: 1.5px var(--inkline);
+      paint-order: stroke fill;
+      text-shadow: 2px 2px 0 var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) .mv {
+      border: 3px solid var(--inkline);
+      border-left: 9px solid var(--ec, var(--line));
+      border-radius: 8px;
+      background: linear-gradient(#222d55 0 40%, #18213f 40%);
+      box-shadow: 3px 3px 0 var(--inkline);
+      transition: transform .08s, box-shadow .08s, background .08s;
+    }
+
+    body.cel:not(.mode-12bit) .mv.sp:not(:disabled) {
+      background: linear-gradient(color-mix(in srgb, var(--ec) 26%, #222d55) 0 40%, color-mix(in srgb, var(--ec) 12%, #18213f) 40%);
+      box-shadow: 3px 3px 0 var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) .mv:hover:not(:disabled),
+    body.cel:not(.mode-12bit) .mv:focus-visible {
+      border-color: var(--inkline);
+      border-left-color: var(--ec, var(--tension));
+      transform: translate(-2px, -2px);
+      box-shadow: 5px 5px 0 var(--inkline), 0 0 0 3px var(--tension);
+    }
+
+    body.cel:not(.mode-12bit) .mv .k {
+      border: 2px solid var(--inkline);
+      background: var(--tension);
+      color: var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) .mv .pw {
+      height: 9px;
+      border: 2px solid var(--inkline);
+      border-radius: 3px;
+      background: #0b1124;
+    }
+
+    body.cel:not(.mode-12bit) .mv .pw i,
+    body.cel:not(.mode-12bit) .stats .bar i {
+      box-shadow: inset 0 3px 0 rgba(255, 255, 255, .38);
+    }
+
+    body.cel:not(.mode-12bit) .chip {
+      border-width: 2px;
+      background: color-mix(in srgb, currentColor 16%, transparent);
+      box-shadow: 2px 2px 0 var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) .card,
+    body.cel:not(.mode-12bit) #onDlg .card {
+      border: 3px solid var(--inkline);
+      border-radius: 14px;
+      background: var(--dots), linear-gradient(#1b2546 0 96px, var(--panel) 96px);
+      box-shadow: 7px 7px 0 var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) #onCode {
+      border: 3px solid var(--inkline);
+      box-shadow: inset 0 3px 0 rgba(0, 0, 0, .4), 3px 3px 0 var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) .pf {
+      border: 3px solid var(--inkline);
+      box-shadow: 4px 4px 0 var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) .stats .bar {
+      height: 11px;
+      border: 2px solid var(--inkline);
+      border-radius: 3px;
+    }
+
+    body.cel:not(.mode-12bit) .stats .bar i {
+      border-radius: 0
+    }
+
+    body.cel:not(.mode-12bit) .moves td {
+      border-top: 2px solid #222c50
+    }
+
+    body.cel:not(.mode-12bit) .rules>div {
+      border: 3px solid var(--inkline);
+      border-top: 8px solid var(--tension);
+      border-radius: 12px;
+      background: var(--panel);
+      padding: 14px 16px 16px;
+      box-shadow: 6px 6px 0 var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) kbd {
+      border: 2px solid var(--inkline);
+      border-bottom-width: 4px;
+      background: linear-gradient(#2a3664 0 50%, #1d2749 50%);
+    }
+
+    body.cel:not(.mode-12bit) pre {
+      border: 3px solid var(--inkline);
+      box-shadow: 4px 4px 0 var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) .stick {
+      border: 4px solid var(--inkline);
+      background: var(--dots), #141c33;
+      box-shadow: 4px 4px 0 var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) .knob {
+      border: 3px solid var(--inkline);
+      background: linear-gradient(#3a4a80 0 45%, #26325c 45%);
+    }
+
+    body.cel:not(.mode-12bit) .act {
+      border: 4px solid var(--inkline);
+      background: linear-gradient(#ff8a6a 0 42%, var(--flame) 42%);
+      box-shadow: 4px 6px 0 var(--inkline);
+    }
+
+    body.cel:not(.mode-12bit) button:focus-visible,
+    body.cel:not(.mode-12bit) .stage:focus-visible {
+      outline: 3px solid var(--tension);
+      outline-offset: 3px;
+    }
   </style>
 
   <main class="wrap">
@@ -985,6 +1223,7 @@
           title="Cycle 32-Bit Arcade → 64-Bit 3D → HD 3D → 12-Bit Retro [T]">Mode: 32-Bit Arcade</button>
         <button type="button" class="btn" id="skyBtn" style="display:none" title="HD lighting: night match / golden hour [G]">Sky: Night [G]</button>
         <button type="button" class="btn" id="camBtn" style="display:none" title="3D camera view: next [C], previous [Shift+C]">Cam: Broadcast [C]</button>
+        <button type="button" class="btn" id="styleBtn" aria-pressed="true" title="UI style: cel-shaded / classic [K]">Style: Cel [K]</button>
         <button type="button" class="btn" id="muteBtn" aria-pressed="false">Sound: on</button>
         <button type="button" class="btn" id="restartBtn">Restart match</button>
         <button type="button" class="btn" id="quitBtn">Quit to title</button>
@@ -2495,6 +2734,22 @@ Keeper duel   shot × distance
         }
       }
 
+      // Cel-shaded UI (body.cel). The DOM is styled in CSS; the canvas HUD reads `cel` and draws its panels with celBox: a hard
+      // ink drop shadow, a flat fill, a lighter top band (two-tone, no gradient) and a thick ink outline. 12-bit keeps its own look.
+      let cel = true;
+      try { cel = localStorage.getItem('bvb-style') !== 'classic'; } catch (e) { }
+      const INK = '#0b0e1a', celOn = () => cel && engineMode !== '12bit';
+      function celBox(c, x, y, w, h, r, fill, hi, sh = 3) {
+        c.fillStyle = INK; rr(c, x + sh, y + sh, w, h, r); c.fill();
+        c.fillStyle = fill; rr(c, x, y, w, h, r); c.fill();
+        c.save(); rr(c, x, y, w, h, r); c.clip(); c.fillStyle = hi; c.fillRect(x, y, w, h * 0.44); c.restore();
+        c.strokeStyle = INK; c.lineWidth = 2.5; rr(c, x, y, w, h, r); c.stroke();
+      }
+      function setCel(on) {
+        cel = on; document.body.classList.toggle('cel', on);
+        const b = $('styleBtn'); b.textContent = on ? 'Style: Cel [K]' : 'Style: Classic [K]'; b.setAttribute('aria-pressed', String(on));
+        try { localStorage.setItem('bvb-style', on ? 'cel' : 'classic'); } catch (e) { }
+      }
       function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
       function circle(c, x, y, r) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); }
 
@@ -2531,7 +2786,8 @@ Keeper duel   shot × distance
         circle(vg, hx, hy, 8.5); vg.fill(); vg.stroke();
         if (lie > -0.5) { vg.save(); circle(vg, hx, hy, 8.5); vg.clip(); vg.fillStyle = ch.skin; circle(vg, hx + fx * 4.5, hy + fy * 3 + 2.5, 5.8); vg.fill(); vg.restore(); } // face-down: no face
         vg.font = '700 10px "Azeret Mono", monospace'; const label = ch.short, tw = vg.measureText(label).width;
-        vg.fillStyle = 'rgba(8,11,22,.88)'; rr(vg, p.x - tw / 2 - 5, p.y - 38, tw + 10, 14, 4); vg.fill();
+        if (celOn()) celBox(vg, p.x - tw / 2 - 5, p.y - 38, tw + 10, 14, 4, '#141c33', '#202b50', 2);
+        else { vg.fillStyle = 'rgba(8,11,22,.88)'; rr(vg, p.x - tw / 2 - 5, p.y - 38, tw + 10, 14, 4); vg.fill(); }
         vg.strokeStyle = 'rgba(40,51,90,.8)'; vg.lineWidth = 1; vg.stroke();
         vg.fillStyle = p.human ? '#ffe14d' : ELEM[ch.elem].c; vg.fillText(label, p.x, p.y - 30.5);
         if (p.stun > 0) {
@@ -2817,20 +3073,28 @@ Keeper duel   shot × distance
         const w = 190, h = 9, x0 = right ? x - w : x;
         vg.font = '700 11px "Azeret Mono", monospace'; vg.textAlign = right ? 'right' : 'left'; vg.textBaseline = 'alphabetic';
         vg.fillStyle = '#98a3c2'; vg.fillText(`TP ${Math.floor(p.tp)} / ${p.ch.maxTP}`, x, y + 8);
-        vg.fillStyle = '#141c33'; rr(vg, x0, y + 15, w, h, 4); vg.fill();
-        const fw = w * p.tp / p.ch.maxTP;
-        vg.fillStyle = '#ffe14d'; if (fw > 1) { rr(vg, right ? x - fw : x0, y + 15, fw, h, 4); vg.fill(); }
-        vg.fillStyle = 'rgba(11,16,32,.9)';
+        const fw = w * p.tp / p.ch.maxTP, fx0 = right ? x - fw : x0;
+        if (celOn()) { // ink-framed track, a two-tone fill, ink tick marks
+          celBox(vg, x0, y + 15, w, h + 2, 3, '#0d1428', '#141c33', 2);
+          if (fw > 1) { vg.save(); rr(vg, x0, y + 15, w, h + 2, 3); vg.clip(); vg.fillStyle = '#ffe14d'; vg.fillRect(fx0, y + 15, fw, h + 2); vg.fillStyle = '#fff6a8'; vg.fillRect(fx0, y + 15, fw, 4); vg.restore(); }
+        } else {
+          vg.fillStyle = '#141c33'; rr(vg, x0, y + 15, w, h, 4); vg.fill();
+          vg.fillStyle = '#ffe14d'; if (fw > 1) { rr(vg, fx0, y + 15, fw, h, 4); vg.fill(); }
+        }
+        vg.fillStyle = celOn() ? INK : 'rgba(11,16,32,.9)';
         for (const m of p.ch.moves) { const tx = right ? x - w * m.tp / p.ch.maxTP : x0 + w * m.tp / p.ch.maxTP; vg.fillRect(tx - 1, y + 15, 2, h); }
+        if (celOn()) { vg.strokeStyle = INK; vg.lineWidth = 2.5; rr(vg, x0, y + 15, w, h + 2, 3); vg.stroke(); }
       }
 
       function drawHUD32() {
         const w = 236, h = 40, x = W / 2 - w / 2, y = 9;
-        vg.fillStyle = 'rgba(8,11,22,.94)'; rr(vg, x, y, w, h, 8); vg.fill(); vg.strokeStyle = '#28335a'; vg.lineWidth = 1; vg.stroke();
+        if (celOn()) celBox(vg, x, y, w, h, 8, '#18213f', '#243059', 4);
+        else { vg.fillStyle = 'rgba(8,11,22,.94)'; rr(vg, x, y, w, h, 8); vg.fill(); vg.strokeStyle = '#28335a'; vg.lineWidth = 1; vg.stroke(); }
         vg.fillStyle = haru.ch.trim; vg.fillRect(x + 10, y + 12, 4, 16); vg.fillStyle = jin.ch.trim; vg.fillRect(x + w - 14, y + 12, 4, 16);
         vg.textBaseline = 'middle'; vg.font = '700 13px "Azeret Mono", monospace'; vg.fillStyle = '#eef1f8';
         vg.textAlign = 'left'; vg.fillText(haru.ch.short, x + 22, y + h / 2 + 1); vg.textAlign = 'right'; vg.fillText(jin.ch.short, x + w - 22, y + h / 2 + 1);
         vg.textAlign = 'center'; vg.font = '24px "Dela Gothic One", sans-serif';
+        if (celOn()) { vg.lineWidth = 5; vg.lineJoin = 'round'; vg.strokeStyle = INK; vg.strokeText(String(score[0]), W / 2 - 22, y + h / 2 + 1); vg.strokeText(String(score[1]), W / 2 + 22, y + h / 2 + 1); }
         vg.fillText(String(score[0]), W / 2 - 22, y + h / 2 + 1); vg.fillText(String(score[1]), W / 2 + 22, y + h / 2 + 1);
         vg.fillStyle = '#98a3c2'; vg.fillText('–', W / 2, y + h / 2);
         vg.textBaseline = 'alphabetic';
@@ -2944,7 +3208,13 @@ Keeper duel   shot × distance
         const t = (now - b.t0) / 1000, D = b.dur / 1000;
         const k = easeBack(clamp(t / 0.3, 0, 1)), out = t > D - 0.25 ? clamp((t - (D - 0.25)) / 0.25, 0, 1) : 0;
         vg.save(); vg.globalAlpha = 1 - out;
-        vg.fillStyle = 'rgba(6,8,18,.7)'; vg.beginPath(); vg.moveTo(0, 214); vg.lineTo(W, 196); vg.lineTo(W, 356); vg.lineTo(0, 374); vg.closePath(); vg.fill();
+        const band = (dy, h0, h1) => { vg.beginPath(); vg.moveTo(0, 214 + dy - h0); vg.lineTo(W, 196 + dy - h0); vg.lineTo(W, 356 + dy + h1); vg.lineTo(0, 374 + dy + h1); vg.closePath(); };
+        if (celOn()) {
+          vg.fillStyle = INK; band(10, 0, 0); vg.fill();                        // hard drop shadow
+          vg.fillStyle = b.color; band(0, 9, 9); vg.fill();                      // coloured edges peek out above and below
+          vg.fillStyle = 'rgba(10,14,30,.94)'; band(0, 0, 0); vg.fill();
+          vg.strokeStyle = INK; vg.lineWidth = 3; band(0, 9, 9); vg.stroke(); band(0, 0, 0); vg.stroke();
+        } else { vg.fillStyle = 'rgba(6,8,18,.7)'; band(0, 0, 0); vg.fill(); }
         vg.save(); vg.translate(480, 292); vg.scale(k, k); vg.transform(1, 0, -0.16, 1, 0, 0);
         vg.font = `${b.big ? 112 : 64}px "Dela Gothic One", sans-serif`; vg.textAlign = 'center'; vg.textBaseline = 'middle'; vg.lineJoin = 'round';
         vg.lineWidth = 14; vg.strokeStyle = '#0b0e1a'; vg.strokeText(b.text, 0, 0);
@@ -3999,10 +4269,15 @@ Keeper duel   shot × distance
         const HB = ['root', 'hips', 'spine', 'chest', 'neck', 'head', 'shoulderL', 'upper_armL', 'forearmL', 'handL', 'shoulderR', 'upper_armR', 'forearmR', 'handR', 'thighL', 'shinL', 'footL', 'thighR', 'shinR', 'footR'];
         const HP = { hips: 'root', spine: 'hips', chest: 'spine', neck: 'chest', head: 'neck', shoulderL: 'chest', upper_armL: 'shoulderL', forearmL: 'upper_armL', handL: 'forearmL', shoulderR: 'chest', upper_armR: 'shoulderR', forearmR: 'upper_armR', handR: 'forearmR', thighL: 'hips', shinL: 'thighL', footL: 'shinL', thighR: 'hips', shinR: 'thighR', footR: 'shinR' };
         let haruSrc = null;
-        // Everyone wears this body (torso, arms, hands, legs, boots), recoloured to their kit (C.kit); only Haru keeps the model's
-        // head. The others keep their own primitive head, set on the model's neck every frame (syncHaru).
-        const GLB_HEAD = /^(Head|Hair|HairCap|Eyes|Face|Ears)/;
-        const KIT_OF = { Haru_Shirt: 'jersey', Haru_KitRed: 'trim', Haru_KitRedDark: 'trimD', Haru_ShoeRed: 'trim', Haru_Skin: 'skin', Haru_SkinShade: 'skinD' };
+        // Everyone wears this body (torso, arms, hands, legs, boots) and head, recoloured to their kit (C.kit): skin, hair, eyes, brows.
+        // The model carries two hairstyles: Hair (spiky) and HairSwept (swept locks, `spiky: false`); HairCap serves both.
+        const KIT_OF = { Haru_Shirt: 'jersey', Haru_KitRed: 'trim', Haru_KitRedDark: 'trimD', Haru_ShoeRed: 'trim', Haru_Skin: 'skin', Haru_SkinShade: 'skinD', Haru_Iris: 'eye', Haru_Brow: 'brow' };
+        const HAIR_LO = new THREE.Color('#8e0a1c'), HAIR_HI = new THREE.Color('#ff2e36'), lum = (r, g, b) => r * 0.3 + g * 0.59 + b * 0.11;
+        const recolorHair = (o, kit) => { // the model's red root-to-tip vertex colours become this fighter's hair -> hairHi ramp
+          const a = (o.geometry = o.geometry.clone()).getAttribute('color'); if (!a) return;
+          const lo = lum(HAIR_LO.r, HAIR_LO.g, HAIR_LO.b), hi = lum(HAIR_HI.r, HAIR_HI.g, HAIR_HI.b), c0 = new THREE.Color(kit.hair), c1 = new THREE.Color(kit.hairHi), c = new THREE.Color();
+          for (let i = 0; i < a.count; i++) { c.copy(c0).lerp(c1, 0.8 * clamp((lum(a.getX(i), a.getY(i), a.getZ(i)) - lo) / (hi - lo), 0, 1)); a.setXYZ(i, c.r, c.g, c.b); }
+        };
         const dressHaru = C => {
           if (!haruSrc || C.glb || !C.kit) return;
           const full = C.chId === 'haru', kit = C.kit;
@@ -4018,7 +4293,9 @@ Keeper duel   shot × distance
           // Haru's model is scaled 40x from metres into pitch units, so 0.014m gives an outline close to the primitive cast.
           const ink = mkInk(true, 0.014); C.fx.ink.push(ink);
           for (const o of meshes) {
-            if (!full && (GLB_HEAD.test(o.name) || GLB_HEAD.test(o.parent.name))) { o.visible = false; continue; } // their own head instead
+            const nm = /^Hair/.test(o.name) ? o.name : o.parent.name;
+            if (kit.spiky ? /^HairSwept/.test(nm) : /^Hair(?!Cap|Swept)/.test(nm)) { o.visible = false; continue; } // the other hairstyle
+            if (!full && /^Hair/.test(nm)) recolorHair(o, kit);
             const convert = m => {
               if (!m) return m;
               const skin = /skin/i.test(m.name || '');
@@ -4062,12 +4339,7 @@ Keeper duel   shot × distance
           }
           const par = bones.root.parent.getWorldQuaternion(Q());
           g.scale.setScalar(HARU_S); C.root.add(g);
-          const own = new Set(); if (!full) C.head.traverse(o => own.add(o));
-          for (const m of C.prim) if (!own.has(m)) m.visible = false;
-          if (!full) { // where the primitive head sits relative to the model's neck at rest (root space; body/tilt are identity at rest)
-            g.updateMatrixWorld(true); const n = C.root.worldToLocal(bones.head.getWorldPosition(new THREE.Vector3()));
-            C.headOff = new THREE.Vector3(0, C.body.position.y + C.head.position.y, 0).sub(n);
-          }
+          for (const m of C.prim) m.visible = false; // the primitive cast stays as the invisible control skeleton
           C.glb = { bones, morphs, morphInk, rest, tgt, par, parInv: par.clone().invert(), p0: bones.root.position.clone(), v: new THREE.Vector3(), hv: new THREE.Vector3(), q: Object.fromEntries(['B', 'H', 'AL', 'EL', 'AR', 'ER', 'LL', 'KL', 'FL', 'LR', 'KR', 'FR'].map(k => [k, Q()])) };
         };
         const syncHaru = C => { // each bone's world rotation = (the game joint's rotation, in the rig's frame) x (the bone's rest rotation)
@@ -4084,10 +4356,7 @@ Keeper duel   shot × distance
             G.bones[n].quaternion.copy(HP[n] ? G.tgt[HP[n]] : G.par).invert().multiply(t);
           }
           G.bones.root.position.copy(G.p0).add(G.v.copy(C.tilt.position).divideScalar(HARU_S).applyQuaternion(G.parInv)); // keeper crouches / jumps
-          if (C.headOff) { // own head on the model's neck: neck position now + the rest offset turned with the upper body, in body space
-            const v = G.bones.head.getWorldPosition(G.v); C.root.worldToLocal(v).add(G.hv.copy(C.headOff).applyQuaternion(q.B));
-            C.body.updateWorldMatrix(true, false); C.head.position.copy(C.body.worldToLocal(C.root.localToWorld(v)));
-          } else C.face.sweat.visible = false; // styleChars re-shows the primitive head's sweat drop every frame; the Surprised shape key covers "beaten"
+          C.face.sweat.visible = false; // styleChars re-shows the primitive head's sweat drop every frame; the Surprised shape key covers "beaten"
           const f = C.fc || [0, 0, 0]; // fierce / shock / smug (styleChars) -> the shape keys built in Blender
           for (const m of G.morphs) {
             const d = m.morphTargetDictionary, w = m.morphTargetInfluences;
@@ -4100,14 +4369,14 @@ Keeper duel   shot × distance
         const prim = C => { C.prim = []; C.root.traverse(o => { if (o.isMesh) C.prim.push(o); }); C.stars.traverse(o => { const i = C.prim.indexOf(o); if (i >= 0) C.prim.splice(i, 1); }); };
         const fighter = ch => {
           const C = player(ch, HAIR3[ch.spiky][0], Object.assign({ num: ch.num }, HAIR3[ch.spiky][1]));
-          prim(C); C.chId = ch.id; C.kit = { jersey: ch.jersey, trim: ch.trim, skin: ch.skin }; dressHaru(C); return C;
+          prim(C); C.chId = ch.id; C.kit = { jersey: ch.jersey, trim: ch.trim, skin: ch.skin, hair: ch.hair, hairHi: ch.hairHi, brow: ch.brow, eye: ch.eye, spiky: ch.spiky }; dressHaru(C); return C;
         };
         const rigs = new Map([[haru, fighter(haru.ch)], [jin, fighter(jin.ch)]]);
         new PP.GLTFLoader().load('assets/haru/haru.glb', gltf => { haruSrc = gltf; for (const C of rigs.values()) dressHaru(C); },
           undefined, e => console.warn('[haru] model unavailable, using the primitive character:', e));
         const keeper = (ch, spikes, o) => { // keepers wear the body too: dark shorts, gloves
           const C = player(ch, spikes, Object.assign({ shorts: '#1b1f2a', gloves: true }, o)); prim(C);
-          C.kit = { jersey: ch.jersey, trim: '#1b1f2a', skin: ch.skin, gloves: true }; dressHaru(C); return C;
+          C.kit = { jersey: ch.jersey, trim: '#1b1f2a', skin: ch.skin, hair: ch.hair, hairHi: ch.hairHi, brow: ch.brow, eye: ch.eye, spiky: spikes > 0, gloves: true }; dressHaru(C); return C;
         };
         rigs.set(keepers[0], keeper(GK_A, 4, { spikeLen: 9, spread: 0.7, spikeX: -4, spikeY: 6, spikeTilt: 1.1 }));
         rigs.set(keepers[1], keeper(GK_B, 0, {}));
@@ -4422,7 +4691,8 @@ Keeper duel   shot × distance
       function tag64(text, x, y, col) {
         vg.font = '700 10px "Azeret Mono", monospace'; vg.textAlign = 'center'; vg.textBaseline = 'middle';
         const tw = vg.measureText(text).width;
-        vg.fillStyle = 'rgba(8,11,22,.88)'; rr(vg, x - tw / 2 - 5, y - 7, tw + 10, 14, 4); vg.fill();
+        if (celOn()) celBox(vg, x - tw / 2 - 5, y - 7, tw + 10, 14, 4, '#141c33', '#202b50', 2);
+        else { vg.fillStyle = 'rgba(8,11,22,.88)'; rr(vg, x - tw / 2 - 5, y - 7, tw + 10, 14, 4); vg.fill(); }
         vg.fillStyle = col; vg.fillText(text, x, y + 0.5); vg.textBaseline = 'alphabetic';
       }
 
@@ -5586,6 +5856,7 @@ Keeper duel   shot × distance
         if (c === 'KeyT') { e.preventDefault(); setEngineMode(NEXT_MODE[engineMode]); return; }
         if (c === 'KeyF') { e.preventDefault(); perf.show = !perf.show; return; }
         if (c === 'KeyC' && is3D()) { e.preventDefault(); cycleCam(e.shiftKey ? -1 : 1); return; }
+        if (c === 'KeyK') { e.preventDefault(); setCel(!cel); return; }
         if (c === 'KeyQ' || c === 'KeyE') keys.add(c);
         if (c === 'Space' && cam3().id === 'photo') { e.preventDefault(); camSt.snap = true; return; }
         if (c === 'KeyG' && engineMode === 'hd') { e.preventDefault(); toggleSky(); return; }
@@ -5621,6 +5892,8 @@ Keeper duel   shot × distance
       $('quitBtn').addEventListener('click', quitToTitle);
       $('skyBtn').addEventListener('click', toggleSky);
       $('camBtn').addEventListener('click', () => cycleCam(1));
+      $('styleBtn').addEventListener('click', () => setCel(!cel));
+      setCel(cel);
       { // drag: orbit / photo-mode look · wheel: orbit distance / photo-mode zoom
         let dr = null;
         stage.addEventListener('pointerdown', e => { if (!e.target.closest('button')) dr = { x: e.clientX, y: e.clientY }; });

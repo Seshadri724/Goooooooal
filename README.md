@@ -88,6 +88,7 @@ Pick your fighter and your rival on the title screen (picking the rival's fighte
 * **Engine Switching**: `T` (cycles between 32-Bit Arcade ➔ 64-Bit 3D ➔ HD 3D ➔ 12-Bit Retro).
 * **HD Lighting**: `G` (HD 3D only) switches between a night match and golden hour.
 * **Camera views**: `C` / `Shift+C` (3D modes only) cycles Broadcast, Cinematic, Follow, Over-the-shoulder, Orbit (drag, `Q`/`E`, wheel), First-person, Helmet HUD, Cockpit, Fixed angles, Isometric, Top-down, CCTV and Photo mode. Photo mode freezes the match: `WASD` to fly, `Q`/`E` to go down/up, drag to look, wheel to zoom, `Space` to save a PNG. In the views that sit behind or inside Nuem, movement keys follow the camera.
+* **UI Style**: `K` (or the Style button) switches between the cel-shaded UI (default: ink outlines, flat two-tone fills, hard shadows, halftone and speed lines, also on the canvas HUD, TP bars, name tags and banners) and the classic look. The choice is remembered. 12-bit mode keeps its own pixel theme.
 * **Debug Tools**:
   * `F`: FPS meter (in HD it also shows the auto-quality level, which drops a step whenever the game runs under 50 FPS for 2s).
   * `P`: Audit on-screen palette (12-bit mode).
