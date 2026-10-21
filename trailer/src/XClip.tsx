@@ -477,3 +477,52 @@ export const XClip: React.FC = () => {
   );
 };
 
+
+// 14.4 s cut for looping / resharing (9 bars): the missile hook, five specials a bar each, a goal, the ask.
+// The music starts at its first drop (bar 14 of music.wav) so the crash and kick land on frame 0.
+export const XShort: React.FC = () => {
+  const { fps } = useVideoConfig();
+  return (
+    <AbsoluteFill style={{ background: "#05070e" }}>
+      <Audio src={staticFile("audio/music.wav")} trimBefore={14 * BAR * (fps / 30)} volume={(f) => interpolate(f, [9 * BAR - 8, 9 * BAR], [1, 0], { extrapolateLeft: "clamp" })} />
+      <Series>
+        <Series.Sequence name="Hook" durationInFrames={BAR} premountFor={fps}>
+          <Raw src="specials" from={83.9} push={0.12} />
+          <Slam text="THE BALL IS A MISSILE." color={FLAME} />
+          <Vignette />
+          {sfx("impact", 0.8)}
+        </Series.Sequence>
+        <Series.Sequence name="Imperial Dragon" durationInFrames={BAR} premountFor={fps}>
+          <Special src="sari" from={2.6} n="01" name="IMPERIAL DRAGON" note="A dragon carries the ball in its jaws." color="#b06bff" />
+        </Series.Sequence>
+        <Series.Sequence name="Crimson Meteor" durationInFrames={BAR} premountFor={fps}>
+          <Special src="specials" from={90.6} n="02" name="CRIMSON METEOR" note="Flame at full power." color={FLAME} />
+        </Series.Sequence>
+        <Series.Sequence name="Avalanche Snowball" durationInFrames={BAR} premountFor={fps}>
+          <Special src="specials" from={35.6} n="03" name="AVALANCHE SNOWBALL" note="Flattens the keeper." color={ICE} />
+        </Series.Sequence>
+        <Series.Sequence name="Sword Storm" durationInFrames={BAR} premountFor={fps}>
+          <Special src="specials" from={59.4} n="04" name="SWORD STORM" note="A fan of blades. Unblockable." color="#a7b4d6" />
+        </Series.Sequence>
+        <Series.Sequence name="Thunderbolt Barrage" durationInFrames={BAR} premountFor={fps}>
+          <Special src="cams" from={1.8} n="05" name="THUNDERBOLT BARRAGE" note="Lightning strikes the keeper." color="#ffd84a" />
+        </Series.Sequence>
+        <Series.Sequence name="Goal" durationInFrames={BAR} premountFor={fps}>
+          <Raw src="specials" from={21.4} push={0.08} />
+          <Vignette />
+          <Flash />
+          {sfx("crowd", 0.7)}
+        </Series.Sequence>
+        <Series.Sequence name="End card" durationInFrames={2 * BAR} premountFor={fps}>
+          <Raw src="main" from={87} dim={0.22} blur={16} push={0.04} />
+          <EndCard />
+          <Vignette />
+          <Flash />
+        </Series.Sequence>
+      </Series>
+      <Sequence from={BAR} durationInFrames={6 * BAR} premountFor={fps}>
+        <Bug />
+      </Sequence>
+    </AbsoluteFill>
+  );
+};
