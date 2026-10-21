@@ -123,3 +123,6 @@ docker-compose.override.yml
 prometheus-data/
 grafana-data/
 public/
+
+# Social & marketing assets
+linkedin/
