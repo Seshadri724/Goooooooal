@@ -12,12 +12,12 @@ import { Video } from "@remotion/media";
 import { loadFont as loadDela } from "@remotion/google-fonts/DelaGothicOne";
 import { loadFont as loadMono } from "@remotion/google-fonts/AzeretMono";
 
-const dela = loadDela().fontFamily;
-const mono = loadMono("normal", { weights: ["500", "700"] }).fontFamily;
+export const dela = loadDela().fontFamily;
+export const mono = loadMono("normal", { weights: ["500", "700"] }).fontFamily;
 
-const FLAME = "#ff5a36";
-const STONE = "#e0a93f";
-const GOLD = "#ffe14d";
+export const FLAME = "#ff5a36";
+export const STONE = "#e0a93f";
+export const GOLD = "#ffe14d";
 
 // The gameplay capture is the whole 1280x720 page. The game stage is the 1024x576 box at (128, 114); scaling by 1.875 puts
 // exactly that box on a 1920x1080 frame (the page header and buttons fall outside it).
@@ -63,7 +63,7 @@ const Clip: React.FC<{
 };
 
 // A short white flash on every cut: the energy of an anime impact frame.
-const Flash: React.FC = () => {
+export const Flash: React.FC = () => {
   const frame = useCurrentFrame();
   return (
     <AbsoluteFill
@@ -78,7 +78,7 @@ const Flash: React.FC = () => {
   );
 };
 
-const Vignette: React.FC = () => (
+export const Vignette: React.FC = () => (
   <AbsoluteFill
     style={{
       background:
@@ -89,7 +89,7 @@ const Vignette: React.FC = () => (
 );
 
 // Lower-left headline over gameplay: a slanted slam with a coloured rule and a line of explanation.
-const Kicker: React.FC<{ text: string; sub: string; color: string }> = ({
+export const Kicker: React.FC<{ text: string; sub: string; color: string }> = ({
   text,
   sub,
   color,
@@ -142,7 +142,7 @@ const Kicker: React.FC<{ text: string; sub: string; color: string }> = ({
   );
 };
 
-const Logo: React.FC<{ size: number }> = ({ size }) => {
+export const Logo: React.FC<{ size: number }> = ({ size }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const a = spring({ frame, fps, config: { damping: 11, stiffness: 160 } });
@@ -221,8 +221,8 @@ const TitleScene: React.FC = () => {
   );
 };
 
-type Fighter = { name: string; elem: string; role: string; color: string };
-const FIGHTERS: Fighter[] = [
+export type Fighter = { name: string; elem: string; role: string; color: string };
+export const FIGHTERS: Fighter[] = [
   { name: "NUEM", elem: "FLAME", role: "STRIKER", color: "#ff5a36" },
   { name: "SOME", elem: "STONE", role: "LIBERO", color: "#e0a93f" },
   { name: "NUM", elem: "THUNDER", role: "WINGER", color: "#ffd84a" },
