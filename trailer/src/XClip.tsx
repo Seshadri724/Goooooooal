@@ -502,7 +502,7 @@ export const XShort: React.FC = () => {
           <Special src="specials" from={35.6} n="03" name="AVALANCHE SNOWBALL" note="Flattens the keeper." color={ICE} />
         </Series.Sequence>
         <Series.Sequence name="Sword Storm" durationInFrames={BAR} premountFor={fps}>
-          <Special src="specials" from={59.4} n="04" name="SWORD STORM" note="A fan of blades. Unblockable." color="#a7b4d6" />
+          <Special src="specials" from={60.2} n="04" name="SWORD STORM" note="A fan of blades. Unblockable." color="#a7b4d6" />
         </Series.Sequence>
         <Series.Sequence name="Thunderbolt Barrage" durationInFrames={BAR} premountFor={fps}>
           <Special src="cams" from={1.8} n="05" name="THUNDERBOLT BARRAGE" note="Lightning strikes the keeper." color="#ffd84a" />
